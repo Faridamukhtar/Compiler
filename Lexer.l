@@ -38,6 +38,7 @@ BOOL        true|false
 "<="            { return LTE; }
 ">"             { return GT; }
 "<"             { return LT; }
+"%"             { return MOD; }
 
 "+"             { return PLUS; }
 "++"            { return INC; }
@@ -63,6 +64,8 @@ BOOL        true|false
 {ID}            { return IDENTIFIER; }
 
 [ \t\r\n]+      { /* skip whitespace */ }
+\/\/.*          { /* skip single-line comments */ }
+\/\*[^*]*\*+([^/*][^*]*\*+)*\/ { /* skip multi-line comments */ }
 .               { return UNKNOWN; }
 
 %%

@@ -13,7 +13,7 @@ void yyerror(const char *s);
 %token IF THEN ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK
 %token AND OR NOT
 %token EQ NEQ GTE LTE GT LT
-%token PLUS MINUS MUL DIV EXP
+%token PLUS MINUS MUL DIV EXP MOD
 %token ASSIGN SEMI COLON COMMA LPAREN RPAREN LBRACE RBRACE
 %token TYPE FLOAT INT BOOLEAN IDENTIFIER
 %token UNKNOWN
@@ -24,7 +24,7 @@ void yyerror(const char *s);
 %left EQ NEQ
 %left LT GT LTE GTE
 %left PLUS MINUS
-%left MUL DIV
+%left MUL DIV MOD
 %right EXP
 %right NOT
 %nonassoc UMINUS
@@ -62,10 +62,10 @@ declaration:
     ;
 
 assignment:
-    | IDENTIFIER INC   /* Post-increment */
-    | IDENTIFIER DEC   /* Post-decrement */
-    | INC IDENTIFIER   /* Pre-increment */
-    | DEC IDENTIFIER   /* Pre-decrement */
+    | IDENTIFIER INC
+    | IDENTIFIER DEC
+    | INC IDENTIFIER
+    | DEC IDENTIFIER
     | IDENTIFIER ASSIGN expression
     ;
 
@@ -75,7 +75,7 @@ if_stmt:
 
 else_part:
     ELSE LBRACE statement_list RBRACE
-    | ELSE if_stmt  /* Nested if-else */
+    | ELSE if_stmt
     | /* empty */
     ;
 
@@ -116,7 +116,7 @@ break_stmt:
 
 return_stmt:
     RETURN expression
-    | RETURN /* for empty return */
+    | RETURN
     ;
 
 expression:
@@ -150,6 +150,7 @@ relational_expr:
 additive_expr:
     additive_expr PLUS multiplicative_expr
     | additive_expr MINUS multiplicative_expr
+    | additive_expr MOD multiplicative_expr
     | multiplicative_expr
     ;
 
@@ -214,7 +215,7 @@ int main() {
     printf("Starting parser...\n");
     FILE *input = fopen("input.txt", "r");
     if (input) {
-        yyin = input;  // Set the input file for the lexer
+        yyin = input;
         int result = yyparse();
         if (result == 0) {
             printf("Parsing successful!\n");
