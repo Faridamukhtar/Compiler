@@ -10,7 +10,7 @@ void yyerror(const char *s);
 %}
 
 /* Define tokens */
-%token IF THEN ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST
+%token IF THEN ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK
 %token AND OR NOT
 %token EQ NEQ GTE LTE GT LT
 %token PLUS MINUS MUL DIV EXP
@@ -28,6 +28,7 @@ void yyerror(const char *s);
 %right EXP
 %right NOT
 %nonassoc UMINUS
+%right INC DEC
 
 %%
 
@@ -61,38 +62,55 @@ declaration:
     ;
 
 assignment:
-    IDENTIFIER ASSIGN expression
+    | IDENTIFIER INC   /* Post-increment */
+    | IDENTIFIER DEC   /* Post-decrement */
+    | INC IDENTIFIER   /* Pre-increment */
+    | DEC IDENTIFIER   /* Pre-decrement */
+    | IDENTIFIER ASSIGN expression
     ;
 
 if_stmt:
-    IF LPAREN expression RPAREN LBRACE statement RBRACE else_part
+    IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_part
     ;
 
 else_part:
-    ELSE LBRACE statement RBRACE
+    ELSE LBRACE statement_list RBRACE
     | ELSE if_stmt  /* Nested if-else */
     | /* empty */
     ;
 
 while_stmt:
-    WHILE LPAREN expression RPAREN statement
+    WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
     ;
 
 for_stmt:
-    FOR LPAREN declaration SEMI expression SEMI assignment RPAREN statement
+    FOR LPAREN declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    ;
+
+CONSTANT_VAL:
+    INT
+    | FLOAT
+    | BOOLEAN
+    | IDENTIFIER
     ;
 
 switch_stmt:
-    SWITCH LPAREN expression RPAREN LBRACE case_list default_case RBRACE
+    SWITCH LPAREN IDENTIFIER RPAREN LBRACE case_list default_case RBRACE
     ;
 
 case_list:
-    case_list CASE expression COLON statement_list
+    case_list CASE CONSTANT_VAL COLON statement_list break_stmt
     | /* empty */
     ;
 
 default_case:
-    DEFAULT COLON statement_list
+    DEFAULT COLON statement_list break_stmt
+    | /* empty */
+    ;
+
+
+break_stmt:
+    BREAK SEMI
     | /* empty */
     ;
 

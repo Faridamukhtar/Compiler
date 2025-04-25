@@ -26,6 +26,7 @@ BOOL        true|false
 "function"      { return FUNCTION; }
 "return"        { return RETURN; }
 "const"         { return CONST; }
+"break"         { return BREAK; }
 
 "and"           { return AND; }
 "or"            { return OR; }
@@ -39,7 +40,9 @@ BOOL        true|false
 "<"             { return LT; }
 
 "+"             { return PLUS; }
+"++"            { return INC; }
 "-"             { return MINUS; }
+"--"            { return DEC; }
 "*"             { return MUL; }
 "/"             { return DIV; }
 "^"             { return EXP; }
