@@ -18,14 +18,27 @@ void yyerror(const char *s);
 %token TYPE FLOAT INT BOOLEAN IDENTIFIER
 %token UNKNOWN
 
+/* Define operator precedence */
+%left OR
+%left AND
+%left EQ NEQ
+%left LT GT LTE GTE
+%left PLUS MINUS
+%left MUL DIV
+%right EXP
+%right NOT
+%nonassoc UMINUS
+
 %%
+
+/* Grammar Rules */
 
 program:
     statement_list
     ;
 
 statement_list:
-    statement_list statement
+    statement statement_list
     | /* empty */
     ;
 
@@ -44,6 +57,7 @@ statement:
 
 declaration:
     TYPE IDENTIFIER
+    | TYPE IDENTIFIER ASSIGN expression
     ;
 
 assignment:
@@ -51,11 +65,12 @@ assignment:
     ;
 
 if_stmt:
-    IF expression THEN statement_list else_part
+    IF LPAREN expression RPAREN LBRACE statement RBRACE else_part
     ;
 
 else_part:
-    ELSE statement_list
+    ELSE LBRACE statement RBRACE
+    | ELSE if_stmt  /* Nested if-else */
     | /* empty */
     ;
 
@@ -87,25 +102,62 @@ return_stmt:
     ;
 
 expression:
-    INT
+    logical_expr
+    ;
+
+logical_expr:
+    logical_expr OR logical_term
+    | logical_term
+    ;
+
+logical_term:
+    logical_term AND equality_expr
+    | equality_expr
+    ;
+
+equality_expr:
+    equality_expr EQ relational_expr
+    | equality_expr NEQ relational_expr
+    | relational_expr
+    ;
+
+relational_expr:
+    relational_expr LT additive_expr
+    | relational_expr GT additive_expr
+    | relational_expr LTE additive_expr
+    | relational_expr GTE additive_expr
+    | additive_expr
+    ;
+
+additive_expr:
+    additive_expr PLUS multiplicative_expr
+    | additive_expr MINUS multiplicative_expr
+    | multiplicative_expr
+    ;
+
+multiplicative_expr:
+    multiplicative_expr MUL exponent_expr
+    | multiplicative_expr DIV exponent_expr
+    | exponent_expr
+    ;
+
+exponent_expr:
+    exponent_expr EXP unary_expr
+    | unary_expr
+    ;
+
+unary_expr:
+    NOT unary_expr
+    | MINUS unary_expr
+    | primary_expr
+    ;
+
+primary_expr:
+    IDENTIFIER
+    | INT
     | FLOAT
     | BOOLEAN
-    | IDENTIFIER
-    | expression PLUS expression
-    | expression MINUS expression
-    | expression MUL expression
-    | expression DIV expression
-    | expression EXP expression
     | LPAREN expression RPAREN
-    | NOT expression
-    | expression AND expression
-    | expression OR expression
-    | expression EQ expression
-    | expression NEQ expression
-    | expression GTE expression
-    | expression LTE expression
-    | expression GT expression
-    | expression LT expression
     ;
 
 repeat_stmt:
