@@ -1,4 +1,5 @@
-lex:
-	flex Lexer.l
-	gcc lex.yy.c -o lexer -lfl
-	./lexer
+build-parser:
+	flex --header-file=lex.yy.h -o lex.yy.c Lexer.l
+	bison -d parser.y
+	gcc -o parser lex.yy.c parser.tab.c
+	./parser input.txt

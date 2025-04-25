@@ -63,8 +63,11 @@ BOOL        true|false
 .               { return UNKNOWN; }
 
 %%
+int yywrap() {
+    return 1;
+}
 
-int main() {
+/* int main() {
     yylex();
     return 0;
-}
+} */
