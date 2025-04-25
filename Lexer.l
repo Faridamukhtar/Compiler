@@ -1,53 +1,67 @@
 %{
 #include <stdio.h>
+#include "parser.tab.h"  // Yacc header to recognize token values
 %}
 
-DIGIT   [0-9]
-ID      [a-zA-Z_][a-zA-Z0-9_]*
-TYPE    int|float|bool|string|void
+DIGIT       [0-9]
+LETTER      [a-zA-Z]
+ID          [a-zA-Z_][a-zA-Z0-9_]*
+TYPE        int|float|bool|string|void
+INT         {DIGIT}+
+FLOAT       {DIGIT}+"."{DIGIT}+
+BOOL        true|false
+
 %%
-"if"            { printf("IF\n"); }
-"then"          { printf("THEN\n"); }
-"else"          { printf("ELSE\n"); }
-"repeat"        { printf("REPEAT\n"); }
-"until"         { printf("UNTIL\n"); }
-"switch"        { printf("SWITCH\n"); }
-"case"          { printf("CASE\n"); }
-"default"       { printf("DEFAULT\n"); }
-"function"      { printf("FUNCTION\n"); }
-"return"        { printf("RETURN\n"); }
 
-"and"           { printf("AND\n"); }
-"or"            { printf("OR\n"); }
-"not"           { printf("NOT\n"); }
+"if"            { return IF; }
+"then"          { return THEN; }
+"else"          { return ELSE; }
+"repeat"        { return REPEAT; }
+"until"         { return UNTIL; }
+"while"         { return WHILE; }
+"for"           { return FOR; }
+"switch"        { return SWITCH; }
+"case"          { return CASE; }
+"default"       { return DEFAULT; }
+"function"      { return FUNCTION; }
+"return"        { return RETURN; }
+"const"         { return CONST; }
 
-"=="            { printf("EQ\n"); }
-"!="            { printf("NEQ\n"); }
-">="            { printf("GTE\n"); }
-"<="            { printf("LTE\n"); }
-">"             { printf("GT\n"); }
-"<"             { printf("LT\n"); }
+"and"           { return AND; }
+"or"            { return OR; }
+"not"           { return NOT; }
 
-"+"             { printf("PLUS\n"); }
-"-"             { printf("MINUS\n"); }
-"*"             { printf("MUL\n"); }
-"/"             { printf("DIV\n"); }
-"^"             { printf("EXP\n"); }
+"=="            { return EQ; }
+"!="            { return NEQ; }
+">="            { return GTE; }
+"<="            { return LTE; }
+">"             { return GT; }
+"<"             { return LT; }
 
-"="             { printf("ASSIGN\n"); }
-";"             { printf("SEMI\n"); }
-":"             { printf("COLON\n"); }
-","             { printf("COMMA\n"); }
-"("             { printf("LPAREN\n"); }
-")"             { printf("RPAREN\n"); }
-"{"             { printf("LBRACE\n"); }
-"}"             { printf("RBRACE\n"); }
+"+"             { return PLUS; }
+"-"             { return MINUS; }
+"*"             { return MUL; }
+"/"             { return DIV; }
+"^"             { return EXP; }
 
-{TYPE}          { printf("TYPE: %s\n", yytext); }
-{DIGIT}+        { printf("NUMBER: %s\n", yytext); }
-{ID}            { printf("IDENTIFIER: %s\n", yytext); }
-[ \t\r\n]+      { }
-.               { printf("UNKNOWN: %s\n", yytext); }
+"="             { return ASSIGN; }
+";"             { return SEMI; }
+":"             { return COLON; }
+","             { return COMMA; }
+"("             { return LPAREN; }
+")"             { return RPAREN; }
+"{"             { return LBRACE; }
+"}"             { return RBRACE; }
+
+{TYPE}          { return TYPE; }
+{FLOAT}         { return FLOAT; }
+{INT}           { return INT; }
+{BOOL}          { return BOOLEAN; }
+{ID}            { return IDENTIFIER; }
+
+[ \t\r\n]+      { /* skip whitespace */ }
+.               { return UNKNOWN; }
+
 %%
 
 int main() {
