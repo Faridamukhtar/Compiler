@@ -1,2 +1,21 @@
-*yy.c
-lexer
+# Flex and Bison generated files
+lex.yy.c
+lex.yy.h
+parser.tab.c
+parser.tab.h
+
+# Compiled files
+*.o
+*.exe
+*.out
+
+# Build directories
+build/
+bin/
+
+# Editor-specific files
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
