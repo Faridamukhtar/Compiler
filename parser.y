@@ -3,31 +3,20 @@
 #include <stdlib.h>
 #include "lex.yy.h"  
 
-// Function prototypes
+extern int yylex();
+extern int yyparse();
+
 void yyerror(const char *s);
-int yylex(void);
 %}
 
-/* Token declarations for Flex lexer */
+/* Define tokens */
 %token IF THEN ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST
 %token AND OR NOT
 %token EQ NEQ GTE LTE GT LT
 %token PLUS MINUS MUL DIV EXP
 %token ASSIGN SEMI COLON COMMA LPAREN RPAREN LBRACE RBRACE
-%token TYPE
-%token FLOAT INT BOOLEAN IDENTIFIER
+%token TYPE FLOAT INT BOOLEAN IDENTIFIER
 %token UNKNOWN
-
-/* Define operator precedence (optional but useful) */
-%left OR
-%left AND
-%left EQ NEQ
-%left LT GT LTE GTE
-%left PLUS MINUS
-%left MUL DIV
-%right EXP
-%right NOT
-%nonassoc UMINUS
 
 %%
 
@@ -36,60 +25,121 @@ program:
     ;
 
 statement_list:
-    statement statement_list { printf("Parsed a statement.\n"); }
-    | /* empty */ { printf("End of statement list.\n"); }
+    statement_list statement
+    | /* empty */
     ;
 
 statement:
-    declaration SEMI { printf("Declaration statement parsed.\n"); }
-    | assignment SEMI { printf("Assignment statement parsed.\n"); }
-    | if_stmt { printf("If statement parsed.\n"); }
-    | while_stmt { printf("While statement parsed.\n"); }
-    | return_stmt SEMI { printf("Return statement parsed.\n"); }
+    declaration SEMI
+    | assignment SEMI
+    | if_stmt
+    | while_stmt
+    | for_stmt
+    | switch_stmt
+    | return_stmt SEMI
+    | repeat_stmt
+    | function_decl
+    | const_decl SEMI
     ;
 
 declaration:
-    TYPE IDENTIFIER { printf("Declaration: %s\n", yytext); }
+    TYPE IDENTIFIER
     ;
 
 assignment:
-    IDENTIFIER ASSIGN expression { printf("Assignment: %s = %d\n", yytext, $3); }
+    IDENTIFIER ASSIGN expression
     ;
 
 if_stmt:
-    IF expression THEN statement_list ELSE statement_list { printf("If statement parsed.\n"); }
+    IF expression THEN statement_list else_part
+    ;
+
+else_part:
+    ELSE statement_list
+    | /* empty */
     ;
 
 while_stmt:
-    WHILE expression statement_list { printf("While statement parsed.\n"); }
+    WHILE LPAREN expression RPAREN statement
+    ;
+
+for_stmt:
+    FOR LPAREN declaration SEMI expression SEMI assignment RPAREN statement
+    ;
+
+switch_stmt:
+    SWITCH LPAREN expression RPAREN LBRACE case_list default_case RBRACE
+    ;
+
+case_list:
+    case_list CASE expression COLON statement_list
+    | /* empty */
+    ;
+
+default_case:
+    DEFAULT COLON statement_list
+    | /* empty */
     ;
 
 return_stmt:
-    RETURN expression { printf("Return statement parsed.\n"); }
+    RETURN expression
+    | RETURN /* for empty return */
     ;
 
 expression:
-    IDENTIFIER { printf("Expression: %s\n", yytext); }
-    | INT { printf("Integer expression: %d\n", atoi(yytext)); }
-    | FLOAT { printf("Float expression: %f\n", atof(yytext)); }
-    | BOOLEAN { printf("Boolean expression: %s\n", yytext); }
-    | expression PLUS expression { printf("Plus expression\n"); }
-    | expression MINUS expression { printf("Minus expression\n"); }
-    | expression MUL expression { printf("Mul expression\n"); }
-    | expression DIV expression { printf("Div expression\n"); }
-    | LPAREN expression RPAREN { printf("Parenthesized expression\n"); }
-    | MINUS expression %prec UMINUS { printf("Unary minus expression\n"); }
-    | NOT expression { printf("Not expression\n"); }
+    INT
+    | FLOAT
+    | BOOLEAN
+    | IDENTIFIER
+    | expression PLUS expression
+    | expression MINUS expression
+    | expression MUL expression
+    | expression DIV expression
+    | expression EXP expression
+    | LPAREN expression RPAREN
+    | NOT expression
+    | expression AND expression
+    | expression OR expression
+    | expression EQ expression
+    | expression NEQ expression
+    | expression GTE expression
+    | expression LTE expression
+    | expression GT expression
+    | expression LT expression
+    ;
+
+repeat_stmt:
+    REPEAT statement_list UNTIL LPAREN expression RPAREN SEMI
+    ;
+
+function_decl:
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
+    ;
+
+params:
+    /* empty */
+    | param_list
+    ;
+
+param_list:
+    param_list COMMA param
+    | param
+    ;
+
+param:
+    TYPE IDENTIFIER
+    ;
+
+const_decl:
+    CONST TYPE IDENTIFIER ASSIGN expression
     ;
 
 %%
 
-/* Error handling function */
 void yyerror(const char *s) {
     fprintf(stderr, "Parse error: %s\n", s);
 }
 
-/* Main function to call parser */
 int main() {
     printf("Starting parser...\n");
     FILE *input = fopen("input.txt", "r");

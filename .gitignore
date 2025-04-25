@@ -3,6 +3,7 @@ lex.yy.c
 lex.yy.h
 parser.tab.c
 parser.tab.h
+parser
 
 # Compiled files
 *.o
