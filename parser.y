@@ -10,12 +10,12 @@ void yyerror(const char *s);
 %}
 
 /* Define tokens */
-%token IF THEN ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK
+%token IF ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK CONTINUE
 %token AND OR NOT
 %token EQ NEQ GTE LTE GT LT
 %token PLUS MINUS MUL DIV EXP MOD
 %token ASSIGN SEMI COLON COMMA LPAREN RPAREN LBRACE RBRACE
-%token TYPE FLOAT INT BOOLEAN IDENTIFIER
+%token TYPE FLOAT INT BOOLEAN IDENTIFIER STRING CHAR
 %token UNKNOWN
 
 /* Define operator precedence */
@@ -54,11 +54,19 @@ statement:
     | repeat_stmt
     | function_decl
     | const_decl SEMI
+    | function_call SEMI
+    | CONTINUE SEMI
+    | BREAK SEMI
     ;
 
 declaration:
-    TYPE IDENTIFIER
+    TYPE identifier_list
     | TYPE IDENTIFIER ASSIGN expression
+    ;
+
+identifier_list:
+    IDENTIFIER
+    | identifier_list COMMA IDENTIFIER
     ;
 
 assignment:
@@ -84,7 +92,13 @@ while_stmt:
     ;
 
 for_stmt:
-    FOR LPAREN declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    ;
+
+for_stmt_declaration:
+    TYPE IDENTIFIER ASSIGN expression
+    | TYPE IDENTIFIER
+    | IDENTIFIER ASSIGN expression
     ;
 
 CONSTANT_VAL:
@@ -99,18 +113,12 @@ switch_stmt:
     ;
 
 case_list:
-    case_list CASE CONSTANT_VAL COLON statement_list break_stmt
+    case_list CASE CONSTANT_VAL COLON statement_list
     | /* empty */
     ;
 
 default_case:
-    DEFAULT COLON statement_list break_stmt
-    | /* empty */
-    ;
-
-
-break_stmt:
-    BREAK SEMI
+    DEFAULT COLON statement_list
     | /* empty */
     ;
 
@@ -177,14 +185,27 @@ primary_expr:
     | FLOAT
     | BOOLEAN
     | LPAREN expression RPAREN
+    | STRING
+    | CHAR
+    | function_call
     ;
 
 repeat_stmt:
-    REPEAT statement_list UNTIL LPAREN expression RPAREN SEMI
+    REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI
     ;
 
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
+    ;
+
+function_call:
+    IDENTIFIER LPAREN argument_list RPAREN
+    | IDENTIFIER LPAREN RPAREN
+    ;
+
+argument_list:
+    argument_list COMMA expression
+    | expression
     ;
 
 params:

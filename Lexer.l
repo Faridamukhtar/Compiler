@@ -10,11 +10,12 @@ TYPE        int|float|bool|string|void
 INT         {DIGIT}+
 FLOAT       {DIGIT}+"."{DIGIT}+
 BOOL        true|false
+STRING      \"([^\"\\]|\\.)*\"
+CHAR        \'([^\'\\]|\\.)*\'
 
 %%
 
 "if"            { return IF; }
-"then"          { return THEN; }
 "else"          { return ELSE; }
 "repeat"        { return REPEAT; }
 "until"         { return UNTIL; }
@@ -25,6 +26,7 @@ BOOL        true|false
 "default"       { return DEFAULT; }
 "function"      { return FUNCTION; }
 "return"        { return RETURN; }
+"continue"      { return CONTINUE; }
 "const"         { return CONST; }
 "break"         { return BREAK; }
 
@@ -61,6 +63,8 @@ BOOL        true|false
 {FLOAT}         { return FLOAT; }
 {INT}           { return INT; }
 {BOOL}          { return BOOLEAN; }
+{STRING}        { return STRING; }
+{CHAR}          { return CHAR; }
 {ID}            { return IDENTIFIER; }
 
 [ \t\r\n]+      { /* skip whitespace */ }
@@ -72,8 +76,3 @@ BOOL        true|false
 int yywrap() {
     return 1;
 }
-
-/* int main() {
-    yylex();
-    return 0;
-} */
