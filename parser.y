@@ -3,24 +3,50 @@
 #include <stdlib.h>
 #include "lex.yy.h"  
 #include "error_handler.h"
+#include <string.h>
+#include <stdbool.h>
+#include "symbol_table.h"
+#include "helpers.h"
 
 extern int yylex();
 extern int yyparse();
 extern int prev_valid_line;
 
 void yyerror(const char *s);
+
 %}
 
+
+%code requires {
+    #include "symbol_table.h"
+    #include "helpers.h"
+}
+
+%union {
+    int i;
+    char c;
+    float f;
+    char *s;
+    expr expr;
+}
 /* Define tokens */
 %token IF ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK CONTINUE
 %token AND OR NOT
 %token EQ NEQ GTE LTE GT LT
 %token PLUS MINUS MUL DIV EXP MOD
 %token ASSIGN SEMI COLON COMMA LPAREN RPAREN LBRACE RBRACE
-%token TYPE FLOAT INT BOOLEAN IDENTIFIER STRING CHAR
+%token <i> INT
+%token <f> FLOAT
+%token <c> CHAR
+%token <i> BOOLEAN
+%token <s> IDENTIFIER TYPE STRING
 %token UNKNOWN
 
+
+%type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
+%type <s> identifier_list
 /* Define operator precedence */
+
 %left OR
 %left AND
 %left EQ NEQ
@@ -91,8 +117,25 @@ statement:
     ;
 
 declaration:
-    TYPE identifier_list
-    | TYPE IDENTIFIER ASSIGN expression
+    TYPE identifier_list  {
+        // int x,y,z; $2 $1   x,y,z 
+        int count =0;
+        char** result = split($2, ",", &count); // remove spaces please
+        if (result) {
+            // printf("count %d", count);
+            // printf("text %s", $2);
+            Value myvalue;
+            for (int i = 0; i < count; i++) {
+                addSymbol(result[i], $1, myvalue, false, false, NULL, NULL);
+            }
+            free_split_result(result, count);
+        } else {
+            printf("Error splitting string\n");
+        }
+    }
+    | TYPE IDENTIFIER ASSIGN expression {
+        addSymbol($2, $1, $4.value, false, false, NULL, NULL);
+    }
     | TYPE error {
         report_error(SYNTAX_ERROR, "Expected identifier after type", prev_valid_line);
         yyerrok;
@@ -103,7 +146,8 @@ declaration:
     }
     ;
 
-identifier_list:
+
+identifier_list: // capture el zft dah sa7 howa kman
     IDENTIFIER
     | identifier_list COMMA IDENTIFIER
     | identifier_list COMMA error {
@@ -113,11 +157,23 @@ identifier_list:
     ;
 
 assignment:
-    IDENTIFIER INC
-    | IDENTIFIER DEC
-    | INC IDENTIFIER
-    | DEC IDENTIFIER
+    IDENTIFIER INC {
+        handlePrefixInc($1);
+    }
+    | IDENTIFIER DEC {
+        handlePostfixDec($1);
+    }
+    | INC IDENTIFIER {
+        handlePrefixInc($2);
+    }
+    | DEC IDENTIFIER {
+        handlePostfixDec($2);
+
+    }
     | IDENTIFIER ASSIGN expression
+    {
+        updateSymbolValue($1, $3.value);
+    }
     | IDENTIFIER ASSIGN error {
         report_error(SYNTAX_ERROR, "Expected an expression", prev_valid_line);
         yyerrok;
@@ -125,7 +181,7 @@ assignment:
     ;
 
 if_stmt:
-    IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_part
+    IF LPAREN expression RPAREN LBRACE {enterScope();} statement_list RBRACE  {exitScope();} else_part
     | IF error {
         report_error(SYNTAX_ERROR, "Expected '(' in if condition", prev_valid_line);
         yyerrok;
@@ -141,7 +197,7 @@ if_stmt:
     ;
 
 else_part:
-    ELSE LBRACE statement_list RBRACE
+    ELSE LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     | ELSE if_stmt
     | ELSE error {
         report_error(SYNTAX_ERROR, "Malformed else statement", prev_valid_line);
@@ -151,7 +207,7 @@ else_part:
     ;
 
 while_stmt:
-    WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+    WHILE LPAREN expression RPAREN LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     | WHILE error {
         report_error(SYNTAX_ERROR, "Expected '(' in while condition", prev_valid_line);
         yyerrok;
@@ -171,7 +227,7 @@ while_stmt:
     ;
 
 for_stmt:
-    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     | FOR error {
         report_error(SYNTAX_ERROR, "Expected '(' in for loop", prev_valid_line);
         yyerrok;
@@ -191,9 +247,18 @@ for_stmt:
     ;
 
 for_stmt_declaration:
-    TYPE IDENTIFIER ASSIGN expression
-    | TYPE IDENTIFIER
-    | IDENTIFIER ASSIGN expression
+    TYPE IDENTIFIER ASSIGN expression {
+        Value myValue = $4.value;
+        addSymbol($2, $1, myValue, true, false, NULL, NULL);
+    }
+    | TYPE IDENTIFIER {
+        //wrong rule (fofa - used without declaration)
+        Value myValue;
+        addSymbol($2, $1, myValue, false, false, NULL, NULL);
+    }
+    | IDENTIFIER ASSIGN expression {//play here -> update
+        updateSymbolValue($1, $3.value);
+    }
     | TYPE error {
         report_error(SYNTAX_ERROR, "Expected identifier after type", prev_valid_line);
         yyerrok;
@@ -206,17 +271,16 @@ for_stmt_declaration:
         report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
         yyerrok;
     }
-    ;
 
 CONSTANT_VAL:
-    INT
+    INT 
     | FLOAT
     | BOOLEAN
-    | IDENTIFIER
+    | IDENTIFIER 
     ;
 
 switch_stmt:
-    SWITCH LPAREN IDENTIFIER RPAREN LBRACE case_list default_case RBRACE
+    SWITCH LPAREN IDENTIFIER RPAREN LBRACE {enterScope();} case_list default_case RBRACE {exitScope();}
     | SWITCH error {
         report_error(SYNTAX_ERROR, "Expected '(' in switch statement", prev_valid_line);
         yyerrok;
@@ -263,66 +327,145 @@ expression:
     ;
 
 logical_expr:
-    logical_expr OR logical_term
-    | logical_term
+    logical_expr OR logical_term {
+        $$ = $1;
+    }
+    | logical_term {
+        $$ = $1;
+    }
     ;
 
 logical_term:
-    logical_term AND equality_expr
-    | equality_expr
+    logical_term AND equality_expr {
+        $$ = $1;
+    }
+    | equality_expr {
+        $$ = $1;
+    }
     ;
 
 equality_expr:
-    equality_expr EQ relational_expr
-    | equality_expr NEQ relational_expr
-    | relational_expr
+    equality_expr EQ relational_expr {
+        $$ = $1;
+    }
+    | equality_expr NEQ relational_expr {
+        $$ = $1;
+    }
+    | relational_expr {
+        $$ = $1;
+    }
     ;
 
 relational_expr:
-    relational_expr LT additive_expr
-    | relational_expr GT additive_expr
-    | relational_expr LTE additive_expr
-    | relational_expr GTE additive_expr
-    | additive_expr
+    relational_expr LT additive_expr {
+        $$ = $1;
+    }
+    | relational_expr GT additive_expr {
+        $$ = $1;
+    }
+    | relational_expr LTE additive_expr {
+        $$ = $1;
+    }
+    | relational_expr GTE additive_expr {
+        $$ = $1;
+    }
+    | additive_expr {
+        $$ = $1;
+    }
     ;
 
 additive_expr:
-    additive_expr PLUS multiplicative_expr
-    | additive_expr MINUS multiplicative_expr
-    | additive_expr MOD multiplicative_expr
-    | multiplicative_expr
+    additive_expr PLUS multiplicative_expr {
+        $$ = $1;
+    }
+    | additive_expr MINUS multiplicative_expr {
+        $$ = $1;
+    }
+    | multiplicative_expr {
+        $$ = $1;
+    }
     ;
 
 multiplicative_expr:
-    multiplicative_expr MUL exponent_expr
-    | multiplicative_expr DIV exponent_expr
-    | exponent_expr
+    multiplicative_expr MUL exponent_expr {
+        $$ = $1;
+    }
+    | multiplicative_expr DIV exponent_expr {
+        $$ = $1;
+    }
+    | exponent_expr {
+        $$ = $1;
+    }
     ;
 
 exponent_expr:
-    exponent_expr EXP unary_expr
-    | unary_expr
+    exponent_expr EXP unary_expr {
+        $$ = $1;
+    }
+    | unary_expr {
+        $$ = $1;
+    }
     ;
 
 unary_expr:
-    NOT unary_expr
-    | MINUS unary_expr
-    | primary_expr
+    MINUS unary_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
+    }
+    | NOT unary_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
+    }
+    | primary_expr { $$ = $1; }
     ;
 
 primary_expr:
-    IDENTIFIER
-    | INT
-    | FLOAT
-    | BOOLEAN
-    | LPAREN expression RPAREN
-    | STRING
-    | CHAR
-    | function_call
+    INT {
+        Value val;
+        val.iVal = $1;
+        $$ = (expr){.type = INT_TYPE, .value = val};
+    }
+    | FLOAT {
+        Value val;
+        val.fVal = $1;
+        $$ = (expr){.type = FLOAT_TYPE, .value = val};
+    }
+    | CHAR {
+        Value val;
+        val.cVal = $1;
+        $$ = (expr){.type = CHAR_TYPE, .value = val};
+    }
+    | BOOLEAN {
+        Value val;
+        val.bVal = ($1 != 0);
+        $$ = (expr){.type = BOOL_TYPE, .value = val};
+    }
+    | STRING {
+        Value val;
+        val.sVal = strdup($1); 
+        $$ = (expr){.type = STRING_TYPE, .value = val};
+    }
+    | LPAREN expression RPAREN {
+        $$ = $2; 
+    }
+    | function_call {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
+    }
+    | IDENTIFIER {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+            yyerror("Undeclared identifier");
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
+            // YYABORT;
+        }
+        if (!entry->isInitialized) {
+            fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", @1.first_line, $1);
+        }
+        $$ = (expr){.type = entry->type, .value = entry->value};
+    }
     ;
 
+
 repeat_stmt:
-    REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI
+    REPEAT LBRACE {enterScope();} statement_list RBRACE {exitScope();} UNTIL LPAREN expression RPAREN SEMI
     | REPEAT error {
         report_error(SYNTAX_ERROR, "Expected '(' in repeat statement", prev_valid_line);
         yyerrok;
@@ -342,10 +485,19 @@ repeat_stmt:
     ;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();
+        // if($5 != NULL)
+        //     addParamsToSymbolTable($5);
+
+    } statement_list RBRACE {
+        exitScope();
+        Value myValue;
+        addSymbol($3, $2, true, myValue, false, true, $5);
+    }
+    ;
     /* | FUNCTION error {
-        report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
-        yyerrok;
+    report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
+    yyerrok;
     }
     | FUNCTION TYPE IDENTIFIER error {
         report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
@@ -355,9 +507,8 @@ function_decl:
         report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
         yyerrok;
     } */
-    ;
 
-function_call:
+function_call: 
     IDENTIFIER LPAREN argument_list RPAREN
     | IDENTIFIER LPAREN RPAREN
     /* | IDENTIFIER error {
@@ -370,7 +521,7 @@ function_call:
     }
     ;
 
-argument_list:
+argument_list: 
     argument_list COMMA expression
     | expression
     ;
@@ -385,12 +536,18 @@ param_list:
     | param
     ;
 
-param:
-    TYPE IDENTIFIER
+param: //play here
+    TYPE IDENTIFIER {
+        Value myValue;
+        addSymbol($2, $1, myValue, true, false, NULL, NULL);
+    }
     ;
 
-const_decl:
-    CONST TYPE IDENTIFIER ASSIGN expression
+const_decl: 
+    CONST TYPE IDENTIFIER ASSIGN expression { //values btwsal hena 8lt check + string and char fyhom azma
+        Value myValue = $5.value;
+        addSymbol($3, $2, myValue, true, false, NULL, NULL);
+    }
     ;
 
 %%
@@ -402,11 +559,12 @@ void yyerror(const char *s) {
 int main() {
     printf("Starting parser...\n");
     FILE *input = fopen("test/input.txt", "r");
+    initSymbolTable(); // Add this line
+    FILE *input = fopen("input.txt", "r");
     if (input) {
         yyin = input;
         yylineno = 1;
         int result = yyparse();
-        fclose(input);
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
 
@@ -417,6 +575,17 @@ int main() {
             printf("Parsing successful!\n");
             return 0;
         }
+        
+        FILE *output = fopen("symbol_table.txt", "w");
+        if (output) {
+            writeSymbolTableOfAllScopesToFile(output);
+            fclose(output);
+        } else {
+            printf("Failed to open symbol_table.txt for writing.\n");
+        }
+        // Clean up symbol table
+        fclose(input);
+        clearSymbolTables(currentScope);
     } else {
         printf("Failed to open input file.\n");
     }

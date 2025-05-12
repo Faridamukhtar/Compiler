@@ -184,3 +184,14 @@ function int main() {
     }
     return x;
 }
+=======
+const int x = 5;
+const bool flag = true;
+const float pi = 3.14;
+int m,y,z;
+int nono =5;
+m++;
+++m;
+m--;
+--m;
+>>>>>>> 3e2f2a1 (chore: added some symbol table handling):input.txt

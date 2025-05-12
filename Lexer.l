@@ -1,11 +1,24 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include "parser.tab.h" 
+#include <string.h>
 #include "error_handler.h"
 
 extern int yylineno;
 int last_valid_line = 1;
 int prev_valid_line = 1;
+
+// int current_column = 1;
+// // Tell Flex how to update the token's location
+// #define YY_USER_ACTION \
+//     yylloc.first_line = yylloc.last_line = yylineno; \
+//     yylloc.first_column = current_column; \
+//     yylloc.last_column = current_column + yyleng - 1; \
+//     current_column += yyleng;
+
+// 
+
 %}
 
 %option yylineno noyywrap
@@ -66,16 +79,17 @@ CHAR        \'([^\'\\]|\\.)*\'
 "{"             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return LBRACE; }
 "}"             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return RBRACE; }
 
-{TYPE}          { prev_valid_line = last_valid_line; last_valid_line = yylineno; return TYPE; }
-{FLOAT}         { prev_valid_line = last_valid_line; last_valid_line = yylineno; return FLOAT; }
-{INT}           { prev_valid_line = last_valid_line; last_valid_line = yylineno; return INT; }
-{BOOL}          { prev_valid_line = last_valid_line; last_valid_line = yylineno; return BOOLEAN; }
-{STRING}        { prev_valid_line = last_valid_line; last_valid_line = yylineno; return STRING; }
-{CHAR}          { prev_valid_line = last_valid_line; last_valid_line = yylineno; return CHAR; }
-{ID}            { prev_valid_line = last_valid_line; last_valid_line = yylineno; return IDENTIFIER; }
+{TYPE}          { yylval.s = strdup(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return TYPE; }
+{FLOAT}         { yylval.f = atof(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return FLOAT; }
+{INT}           { yylval.i = atoi(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return INT; }
+{BOOL}          { yylval.i = (strcmp(yytext, "true") == 0); prev_valid_line = last_valid_line; last_valid_line = yylineno; return BOOLEAN; }
+{STRING}        { yylval.s = strdup(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return STRING; }
+{CHAR}          { yylval.c = yytext[1];prev_valid_line = last_valid_line; last_valid_line = yylineno; return CHAR; }
+{ID}            { yylval.s = strdup(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return IDENTIFIER; }
 
 [ \t\r]+        { /* skip whitespace */ }
 \n              { /* let yylineno increment automatically */ }
+
 
 \/\/.*          { /* skip single-line comments */ }
 \/\*[^*]*\*+([^/*][^*]*\*+)*\/ { /* skip multi-line comments */ }
