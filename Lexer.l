@@ -1,6 +1,8 @@
 %{
 #include <stdio.h>
-#include "parser.tab.h"  // Yacc header to recognize token values
+#include <stdlib.h>
+#include <string.h>
+#include "parser.tab.h"  // Bison header with token and yylval declarations
 %}
 
 DIGIT       [0-9]
@@ -59,14 +61,13 @@ CHAR        \'([^\'\\]|\\.)*\'
 "{"             { return LBRACE; }
 "}"             { return RBRACE; }
 
-{TYPE}          { return TYPE; }
-{FLOAT}         { return FLOAT; }
-{INT}           { return INT; }
-{BOOL}          { return BOOLEAN; }
-{STRING}        { return STRING; }
-{CHAR}          { return CHAR; }
-{ID}            { return IDENTIFIER; }
-
+{TYPE}          { yylval.s = strdup(yytext); return TYPE; }
+{FLOAT}         { yylval.f = atof(yytext); return FLOAT; }
+{INT}           { yylval.i = atoi(yytext); return INT; }
+{BOOL}          { yylval.i = (strcmp(yytext, "true") == 0); return BOOLEAN; }
+{STRING}        { yylval.s = strdup(yytext); return STRING; }
+{CHAR}          { yylval.c = yytext[1]; return CHAR; }
+{ID}            { yylval.s = strdup(yytext); return IDENTIFIER; }
 [ \t\r\n]+      { /* skip whitespace */ }
 \/\/.*          { /* skip single-line comments */ }
 \/\*[^*]*\*+([^/*][^*]*\*+)*\/ { /* skip multi-line comments */ }

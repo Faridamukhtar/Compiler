@@ -3,18 +3,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "lex.yy.h"  
+#include "lex.yy.h"
 #include "symbol_table.h"
+#include "helpers.h"
 
-Scope *currentScope = NULL;
 extern int yylex();
 extern int yyparse();
 
 void yyerror(const char *s);
+
 %}
 
 %code requires {
     #include "symbol_table.h"
+    #include "helpers.h"
 }
 
 %union {
@@ -22,21 +24,26 @@ void yyerror(const char *s);
     char c;
     float f;
     char *s;
-    char *Dtype;
-    SymbolTableEntry *symbolTableEntry;
+    expr expr;
 }
-
-
 /* Define tokens */
 %token IF ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK CONTINUE
 %token AND OR NOT
 %token EQ NEQ GTE LTE GT LT
 %token PLUS MINUS MUL DIV EXP MOD
 %token ASSIGN SEMI COLON COMMA LPAREN RPAREN LBRACE RBRACE
-%token TYPE FLOAT INT BOOLEAN IDENTIFIER STRING CHAR
+%token <i> INT
+%token <f> FLOAT
+%token <c> CHAR
+%token <i> BOOLEAN
+%token <s> IDENTIFIER TYPE STRING
 %token UNKNOWN
 
+
+%type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
+%type <s> identifier_list
 /* Define operator precedence */
+
 %left OR
 %left AND
 %left EQ NEQ
@@ -77,47 +84,50 @@ statement:
     | BREAK SEMI
     ;
 
-BLOCK:
-    LBRACE {
-        enterScope();  // Enter a new scope
-    }
-    statement_list RBRACE {
-        exitScope();   // Exit the current scope
-    }
-    {
-        printf("Block parsed\n");
-    }
-    ;
-
-declaration:
-    TYPE identifier_list {
-        // TODO: Add each identifier in identifier_list to symbol table with $1 as type
+declaration: 
+    TYPE identifier_list  {
+        // int x,y,z; $2 $1   x,y,z 
+        int count =0;
+        char** result = split($2, ",", &count); // remove spaces please
+        if (result) {
+            // printf("count %d", count);
+            // printf("text %s", $2);
+            Value myvalue;
+            for (int i = 0; i < count; i++) {
+                addSymbol(result[i], $1, myvalue, false, false, NULL, NULL);
+            }
+            free_split_result(result, count);
+        } else {
+            printf("Error splitting string\n");
+        }
     }
     | TYPE IDENTIFIER ASSIGN expression {
-        // TODO: Add $2 to symbol table with $1 as type, mark initialized with $4 as value
+        addSymbol($2, $1, $4.value, false, false, NULL, NULL);
     }
     ;
 
-identifier_list:
+identifier_list: // capture el zft dah sa7 howa kman
     IDENTIFIER
     | identifier_list COMMA IDENTIFIER
     ;
 
-assignment:
+assignment: // completely working expression bs ywsly sa7
     IDENTIFIER INC {
-        // TODO: Lookup $1 and increment value (prefix)
+        handlePrefixInc($1);
     }
     | IDENTIFIER DEC {
-        // TODO: Lookup $1 and decrement value (prefix)
+        handlePostfixDec($1);
     }
     | INC IDENTIFIER {
-        // TODO: Lookup $2 and increment value (prefix)
+        handlePrefixInc($2);
     }
     | DEC IDENTIFIER {
-        // TODO: Lookup $2 and decrement value (prefix)
+        handlePostfixDec($2);
+
     }
-    | IDENTIFIER ASSIGN expression {
-        // TODO: Update $1 in symbol table with $3 as new value
+    | IDENTIFIER ASSIGN expression
+    {
+        updateSymbolValue($1, $3.value);
     }
     ;
 
@@ -141,21 +151,24 @@ for_stmt:
 
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
-        // TODO: Add $2 to symbol table with $1 as type and initialize with $4
+        Value myValue = $4.value;
+        addSymbol($2, $1, myValue, true, false, NULL, NULL);
     }
     | TYPE IDENTIFIER {
-        // TODO: Add $2 to symbol table with $1 as type
+        //8lt aslan ka rule (fofa)
+        Value myValue;
+        addSymbol($2, $1, myValue, false, false, NULL, NULL);
     }
-    | IDENTIFIER ASSIGN expression {
-        // TODO: Update $1 in symbol table with $3
+    | IDENTIFIER ASSIGN expression {//play here -> update
+        updateSymbolValue($1, $3.value);
     }
     ;
 
 CONSTANT_VAL:
-    INT
+    INT 
     | FLOAT
     | BOOLEAN
-    | IDENTIFIER
+    | IDENTIFIER 
     ;
 
 switch_stmt:
@@ -182,82 +195,162 @@ expression:
     ;
 
 logical_expr:
-    logical_expr OR logical_term
-    | logical_term
-    ;
+    logical_expr OR logical_term {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement real OR
+    }
+    | logical_term {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate term
+    }
+;
 
 logical_term:
-    logical_term AND equality_expr
-    | equality_expr
-    ;
+    logical_term AND equality_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement real AND
+    }
+    | equality_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate equality
+    }
+;
 
 equality_expr:
-    equality_expr EQ relational_expr
-    | equality_expr NEQ relational_expr
-    | relational_expr
-    ;
+    equality_expr EQ relational_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ==
+    }
+    | equality_expr NEQ relational_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement !=
+    }
+    | relational_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate relational
+    }
+;
 
 relational_expr:
-    relational_expr LT additive_expr
-    | relational_expr GT additive_expr
-    | relational_expr LTE additive_expr
-    | relational_expr GTE additive_expr
-    | additive_expr
-    ;
+    relational_expr LT additive_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement <
+    }
+    | relational_expr GT additive_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement >
+    }
+    | relational_expr LTE additive_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement <=
+    }
+    | relational_expr GTE additive_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement >=
+    }
+    | additive_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate additive
+    }
+;
 
 additive_expr:
-    additive_expr PLUS multiplicative_expr
-    | additive_expr MINUS multiplicative_expr
-    | additive_expr MOD multiplicative_expr
-    | multiplicative_expr
-    ;
+    additive_expr PLUS multiplicative_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement +
+    }
+    | additive_expr MINUS multiplicative_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement -
+    }
+    | multiplicative_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate multiplicative
+    }
+;
 
 multiplicative_expr:
-    multiplicative_expr MUL exponent_expr
-    | multiplicative_expr DIV exponent_expr
-    | exponent_expr
-    ;
+    multiplicative_expr MUL exponent_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement *
+    }
+    | multiplicative_expr DIV exponent_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement /
+    }
+    | exponent_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate exponent
+    }
+;
 
 exponent_expr:
-    exponent_expr EXP unary_expr
-    | unary_expr
-    ;
+    exponent_expr EXP unary_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ^
+    }
+    | unary_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate unary
+    }
+;
 
 unary_expr:
-    NOT unary_expr
-    | MINUS unary_expr
-    | primary_expr
+    MINUS unary_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement -expr
+    }
+    | NOT unary_expr {
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement !expr
+    }
+    | primary_expr { $$ = $1; }
     ;
 
 primary_expr:
-    IDENTIFIER
-    | INT
-    | FLOAT
-    | BOOLEAN
-    | LPAREN expression RPAREN
-    | STRING
-    | CHAR
-    | function_call
-    ;
+    INT {
+        // printf("int %d\n", $1);
+        Value val;
+        val.iVal = $1;
+        $$ = (expr){.type = INT_TYPE, .value = val};
+    }
+    | FLOAT {
+        // printf("float %f\n", $1);
+        Value val;
+        val.fVal = $1;
+        $$ = (expr){.type = FLOAT_TYPE, .value = val};
+    }
+    | CHAR {
+        // printf("char '%c' (ascii: %d)\n", $1, $1);
+        Value val;
+        val.cVal = $1;
+        $$ = (expr){.type = CHAR_TYPE, .value = val};
+    }
+    | BOOLEAN {
+        // printf("bool %s\n", $1 ? "true" : "false");
+        Value val;
+        val.bVal = ($1 != 0);
+        $$ = (expr){.type = BOOL_TYPE, .value = val};
+    }
+    | STRING {
+        // printf("string \"%s\"\n", $1);
+        Value val;
+        val.sVal = strdup($1); // Make a copy
+        $$ = (expr){.type = STRING_TYPE, .value = val};
+    }
+    | LPAREN expression RPAREN {
+        $$ = $2; // Return inner expression directly
+    }
+    | function_call {
+        // You should ideally evaluate the function and return its value
+        // Here, using a placeholder
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
+    }
+    | IDENTIFIER {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+            yyerror("Undeclared identifier");
+            YYABORT;
+        }
+
+        // printf("identifier %s (type: %d)\n", $1, entry->type);
+        $$ = (expr){.type = entry->type, .value = entry->value};
+    }
+;
+
 
 repeat_stmt:
     REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI
     ;
 
-function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE {
-        // TODO: Add function $3 to symbol table with return type $2
-        // TODO: Push new scope and register parameters
-        // TODO: Pop scope after function body
-    }
+function_decl: //play here
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
     ;
 
-function_call:
+function_call: 
     IDENTIFIER LPAREN argument_list RPAREN
     | IDENTIFIER LPAREN RPAREN
     ;
 
-argument_list:
+argument_list: 
     argument_list COMMA expression
     | expression
     ;
@@ -272,15 +365,17 @@ param_list:
     | param
     ;
 
-param:
+param: //play here
     TYPE IDENTIFIER {
-        // TODO: Add parameter $2 with type $1 to current function scope
+        Value myValue;
+        addSymbol($2, $1, myValue, true, false, NULL, NULL);
     }
     ;
 
-const_decl:
-    CONST TYPE IDENTIFIER ASSIGN expression {
-        // TODO: Add constant $3 to symbol table with type $2 and value $5
+const_decl: 
+    CONST TYPE IDENTIFIER ASSIGN expression { //values btwsal hena 8lt check + string and char fyhom azma
+        Value myValue = $5.value;
+        addSymbol($3, $2, myValue, true, false, NULL, NULL);
     }
     ;
 
@@ -292,7 +387,7 @@ void yyerror(const char *s) {
 
 int main() {
     printf("Starting parser...\n");
-    enterScope();
+    initSymbolTable(); // Add this line
     FILE *input = fopen("input.txt", "r");
     if (input) {
         yyin = input;
@@ -302,10 +397,18 @@ int main() {
         } else {
             printf("Parsing failed!\n");
         }
+        FILE *output = fopen("symbol_table.txt", "w");
+        if (output) {
+            writeSymbolTableOfAllScopesToFile(output);
+            fclose(output);
+        } else {
+            printf("Failed to open symbol_table.txt for writing.\n");
+        }
         fclose(input);
+        // Clean up symbol table
+        clearSymbolTables(currentScope);
     } else {
         printf("Failed to open input file.\n");
     }
-    clearSymbolTables(currentScope);
     return 0;
 }
