@@ -11,6 +11,12 @@ function int foo(int a, float b) {
     } else {
         return a * b;
     }
+    {
+        return a / b;
+        {
+            return a % b;
+        }
+    }
 }
 
 function int factorial(int n) {

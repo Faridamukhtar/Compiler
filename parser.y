@@ -57,6 +57,7 @@ statement:
     | function_call SEMI
     | CONTINUE SEMI
     | BREAK SEMI
+    | LBRACE statement_list RBRACE
     ;
 
 declaration:
@@ -234,7 +235,7 @@ void yyerror(const char *s) {
 
 int main() {
     printf("Starting parser...\n");
-    FILE *input = fopen("input.txt", "r");
+    FILE *input = fopen("test/input.txt", "r");
     if (input) {
         yyin = input;
         int result = yyparse();
