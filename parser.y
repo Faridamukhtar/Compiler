@@ -328,82 +328,85 @@ expression:
 
 logical_expr:
     logical_expr OR logical_term {
-        $$ = $1;
+        $$ = $1; // TODO: implement real OR
     }
     | logical_term {
-        $$ = $1;
+        $$ = $1; // TODO: propagate term
     }
     ;
 
 logical_term:
     logical_term AND equality_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement real AND
     }
     | equality_expr {
-        $$ = $1;
+        $$ = $1; // TODO: propagate equality
     }
     ;
 
 equality_expr:
     equality_expr EQ relational_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement ==
     }
     | equality_expr NEQ relational_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement !=
     }
     | relational_expr {
-        $$ = $1;
+        $$ = $1; // TODO: propagate relational
     }
     ;
 
 relational_expr:
     relational_expr LT additive_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement <
     }
     | relational_expr GT additive_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement >
     }
     | relational_expr LTE additive_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement <=
     }
     | relational_expr GTE additive_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement >=
     }
     | additive_expr {
-        $$ = $1;
+        $$ = $1; // TODO: propagate additive
     }
     ;
 
 additive_expr:
     additive_expr PLUS multiplicative_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement +
     }
     | additive_expr MINUS multiplicative_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement -
     }
     | multiplicative_expr {
-        $$ = $1;
+        $$ = $1; // TODO: propagate multiplicative
     }
     ;
 
 multiplicative_expr:
     multiplicative_expr MUL exponent_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement *
     }
     | multiplicative_expr DIV exponent_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement /
     }
     | exponent_expr {
-        $$ = $1;
+        $$ = $1; // TODO: propagate exponent
+        printf("3nd el multiplicative %d \n" , $1.value.iVal);
     }
     ;
 
 exponent_expr:
     exponent_expr EXP unary_expr {
-        $$ = $1;
+        $$ = $1; // TODO: implement ^
+
     }
     | unary_expr {
-        $$ = $1;
+        $$ = $1; // TODO: propagate unary
+         printf("3nd el exponent %d \n" , $1.value.iVal);
     }
     ;
 
