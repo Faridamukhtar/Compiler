@@ -1,35 +1,15 @@
 === Scope Level: 0 ===
-Name: C1, Type: int (0), Value: 5, Const: 1, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
-Name: C2, Type: bool (3), Value: true, Const: 1, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
-Name: x, Type: int (0), Value: 1184933888, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-Name: y, Type: int (0), Value: 1326, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-Name: z, Type: int (0), Value: 31, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-Name: a, Type: float (1), Value: 2.500000, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
-Name: flag, Type: bool (3), Value: true, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-Name: b, Type: int (0), Value: N/A, Const: 1, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
-Name: add, Type: int (0), Value: N/A, Const: 0, Initialized: 1, Used: 1, IsFunction: 1, Params: int a, int b
+Name: x, Type: int (0), Value: 5, Const: 1, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
+Name: y, Type: int (0), Value: 5, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
 
 === Scope Level: 1 ===
+Name: x, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: m, Type: int (0), Value: N/A, Const: 0, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
+Name: s, Type: int (0), Value: N/A, Const: 0, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
 
 === Scope Level: 2 ===
+Name: y, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
 
 === Scope Level: 3 ===
-
-=== Scope Level: 4 ===
-
-=== Scope Level: 5 ===
-
-=== Scope Level: 6 ===
-
-=== Scope Level: 7 ===
-Name: i, Type: int (0), Value: 1, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-
-=== Scope Level: 8 ===
-
-=== Scope Level: 9 ===
-
-=== Scope Level: 10 ===
-Name: a, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-Name: b, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
-Name: sum, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
+Name: z, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 
