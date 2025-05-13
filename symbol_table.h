@@ -25,9 +25,9 @@ typedef union {
 } Value;
 
 typedef struct expression {
-    ValueType type; //int
+    int type;
     Value value;
-
+    char *temp_var;
 } expr;
 
 typedef struct SymbolTable {

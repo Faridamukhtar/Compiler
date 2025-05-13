@@ -50,12 +50,6 @@ void pop_loop_labels() {
     #include "helpers.h"
     #include "parameter.h"
     #include "quadruple.h"
-
-    typedef struct {
-        int type;
-        Value value;
-        char *temp_var;
-    } expr;
 }
 
 /* Enable location tracking */
