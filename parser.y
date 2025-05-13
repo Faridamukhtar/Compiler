@@ -1620,9 +1620,8 @@ const_decl:
 %%
 
 void yyerror(const char *s) {
-    
+    fprintf(stderr, "Error: %s\n", s);
 }
-
 
 int main() {
     printf("Starting parser...\n");
@@ -1632,6 +1631,7 @@ int main() {
         yyin = input;
         yylineno = 1;
         yyparse();
+        checkUnclosedScopes(yylineno);
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
 
@@ -1667,7 +1667,7 @@ int main() {
         } else {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
-
+        
         fclose(input);
         clearSymbolTables(currentScope);
     } else {

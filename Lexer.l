@@ -4,6 +4,7 @@
 #include "parser.tab.h" 
 #include <string.h>
 #include "error_handler.h"
+#include "symbol_table.h"
 
 extern int yylineno;
 int last_valid_line = 1;
@@ -76,8 +77,8 @@ CHAR        \'([^\'\\]|\\.)*\'
 ","             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return COMMA; }
 "("             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return LPAREN; }
 ")"             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return RPAREN; }
-"{"             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return LBRACE; }
-"}"             { prev_valid_line = last_valid_line; last_valid_line = yylineno; return RBRACE; }
+"{"             { addScope(); prev_valid_line = last_valid_line; last_valid_line = yylineno; return LBRACE; }
+"}"             { removeScope(); prev_valid_line = last_valid_line; last_valid_line = yylineno; return RBRACE; }
 
 {TYPE}          { yylval.s = strdup(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return TYPE; }
 {FLOAT}         { yylval.f = atof(yytext); prev_valid_line = last_valid_line; last_valid_line = yylineno; return FLOAT; }

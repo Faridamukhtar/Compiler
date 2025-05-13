@@ -1,8 +1,10 @@
 #include "symbol_table.h"
+#include "error_handler.h"
 
 Scope *currentScope = NULL;
 Scope *allScopes[1000];     
 int scopeCount = 0;    
+int scope_depth = 0;  // Add scope depth tracking
 
 
 void initSymbolTable() {
@@ -26,8 +28,19 @@ void enterScope() {
     scopeCount++;
 }
 
+void addScope()
+{
+    scope_depth++;  // Increment scope depth
+}
+
+
+void removeScope()
+{
+    scope_depth--;  // Decrement scope depth
+}
+
 void exitScope() {
-    currentScope = currentScope->parent;  
+    currentScope = currentScope->parent;
 }
 
 void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params) {
@@ -251,6 +264,16 @@ void handlePrefixInc(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
+void checkUnclosedScopes(int yylineno) 
+{
+    if (scope_depth > 0) {
+        report_error(SYNTAX_ERROR, "Unclosed scope(s) at end of file", yylineno);
+
+    }
+    else if (scope_depth < 0) {
+        report_error(SYNTAX_ERROR, "Scope Mismatch ", yylineno);
+    }
+}
 
 // void reportUnusedVariables() {
 //     for (int i = 0; i < scopeCount; i++) {

@@ -54,6 +54,10 @@ void initSymbolTable();
 void enterScope();
 void exitScope();
 
+// Tracking Scopes
+void removeScope();
+void addScope();
+
 void *addSymbol(char *name, char *type, bool isIntialized , Value value , bool isConst , bool isFunction, Parameter *params); // add intialize here
 SymbolTableEntry *lookupSymbol(char *name);
 
@@ -74,5 +78,6 @@ void handlePrefixInc(char *identifier);
 // void reportUnusedVariables();
 // void reportUninitializedVariables();
 
+void checkUnclosedScopes(int yylineno);
 
 #endif
