@@ -1,10 +1,8 @@
 TODO 3ND EL SYMBOL TABLE 
 
 MIRA  
-1. is string copy pointer or copy mem ?                                  
+1. is string copy pointer or copy mem ?                             
 3. Function checks 
-a. return expression of a function matches its return type (for void, no expression should come after return)
-b. variables used inside the function match their assignment types as the parameters passed 
 c. correct number and types of parameters when calling a function
 
 Monmon and Fofa

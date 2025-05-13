@@ -1,6 +1,7 @@
 // 1. ✅ Correct function declaration and return
 function int sum(int a, int b) {
-    return "hey";
+    string s = a;
+    return a + b;
 }
 
 // 2. ❌ Return type mismatch (string returned from int function)

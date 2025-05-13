@@ -13,6 +13,9 @@ extern int yylex();
 extern int yyparse();
 extern int prev_valid_line;
 
+SymbolTableEntry* currentFunction = NULL;
+ValueType currentFunctionReturnType = VOID_TYPE;
+
 void yyerror(const char *s);
 %}
 
@@ -396,9 +399,29 @@ default_case:
     ;
 
 return_stmt:
-    RETURN expression
-    | RETURN
+    RETURN expression {
+        if (currentFunctionReturnType == VOID_TYPE) {
+            report_error(SEMANTIC_ERROR, "Void Function Return Value", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Void function '%s' should not return a value.\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        } else if (!areTypesCompatible(currentFunctionReturnType, $2.type)) {
+            report_error(SEMANTIC_ERROR, "Return Type Mismatch", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Return type mismatch in function '%s'.\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        }
+    }
+    | RETURN {
+        if (currentFunctionReturnType != VOID_TYPE) {
+            report_error(SEMANTIC_ERROR, "Missing Return Value", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' must return nothing (void).\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        }
+    }
     ;
+
 
 expression:
     logical_expr
@@ -596,6 +619,8 @@ function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN {
         Value myValue;
         addSymbol($3, $2, true, myValue, false, true, $5); 
+        currentFunction = lookupSymbol($3);
+        currentFunctionReturnType = mapStringToValueType($2);
         enterScope();
         addParamsToSymbolTable($5);
     } LBRACE statement_list RBRACE {
@@ -679,8 +704,8 @@ const_decl:
         addSymbol($3, $2, true, myValue, true, false, NULL);
     }
     | CONST IDENTIFIER ASSIGN expression {
-        report_error(SEMANTIC_ERROR, "Missing Type", @1.first_line);
-        fprintf(stderr, "Semantic Error (line %d): Constant '%s' declared without a type.\n", @2.first_line, $2);
+        report_error(SEMANTIC_ERROR, "Missing Type", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Constant '%s' declared without a type.\n", prev_valid_line, $2);
         // exit(1);
     }
     ;

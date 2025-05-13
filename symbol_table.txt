@@ -9,13 +9,13 @@ Name: r2, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction
 Name: r3, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: x, Type: float (1), Value: 1.500000, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
 Name: z, Type: int (0), Value: N/A, Const: 0, Initialized: 0, Used: 1, IsFunction: 0, Params: N/A
-Name: w, Type: int (0), Value: 1494381664, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: w, Type: int (0), Value: 169927872, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: p, Type: int (0), Value: N/A, Const: 0, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
 Name: m4, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 
 === Scope Level: 1 ===
-Name: a, Type: int (0), Value: 859552192, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
-Name: b, Type: int (0), Value: 859552192, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: a, Type: int (0), Value: 1938329392, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
+Name: b, Type: int (0), Value: 1938329392, Const: 0, Initialized: 1, Used: 1, IsFunction: 0, Params: N/A
 
 === Scope Level: 2 ===
 
