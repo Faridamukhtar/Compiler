@@ -212,7 +212,7 @@ const char *valueTypeToString(ValueType type) {
 void handlePostfixDec(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {
-        printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
+        // printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
         return;
     }
 
@@ -233,7 +233,7 @@ void handlePostfixDec(char *identifier) {
 void handlePrefixInc(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {
-        printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
+        // printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
         return;
     }
 

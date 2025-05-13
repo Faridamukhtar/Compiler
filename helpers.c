@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+#include "symbol_table.h"
+#include "helpers.h"
 
 char** split(const char* str, const char* delimiter, int* count) {
     // Create a copy of the input string to avoid modifying the original string
@@ -58,5 +61,10 @@ void free_split_result(char** result, int count) {
         free(result[i]);
     }
     free(result);
+}
+
+bool areTypesCompatible(ValueType t1, ValueType t2) {
+    if ((t1 == INT_TYPE || t1 == FLOAT_TYPE) && (t2 == INT_TYPE || t2 == FLOAT_TYPE)) return true;
+    return t1 == t2;
 }
 
