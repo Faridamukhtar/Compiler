@@ -36,7 +36,7 @@ void exitScope() {
     free(temp);
 }
 
-void *addSymbol(char *name, char *type, Value value, bool isConst, bool isFunction, Parameter *params, char *returnType) {
+void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params, char *returnType) {
     if (currentScope == NULL) {
         initSymbolTable();
     }
@@ -45,6 +45,12 @@ void *addSymbol(char *name, char *type, Value value, bool isConst, bool isFuncti
         printf("Error: Invalid parameters passed to addSymbol\n");
         return NULL;
     }
+
+    if (isSymbolDeclaredInCurrentScope(name)) {
+        printf("Error: Identifier '%s' is already defined in the current scope\n", name);
+        return NULL;
+    }
+
 
     SymbolTableEntry *newEntry = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
     if (newEntry == NULL) {
@@ -56,7 +62,7 @@ void *addSymbol(char *name, char *type, Value value, bool isConst, bool isFuncti
     newEntry->type = mapStringToValueType(type);
     newEntry->returnType = (isFunction && returnType) ? strdup(returnType) : NULL;
     newEntry->isConst = isConst;
-    newEntry->isInitialized = false;
+    newEntry->isInitialized = isIntialized; 
     newEntry->isUsed = false;
     newEntry->isFunction = isFunction;
     newEntry->params = params;

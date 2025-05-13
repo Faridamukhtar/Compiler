@@ -1,9 +1,13 @@
 const int x = 5;
-const bool flag = true;
-const float pi = 3.14;
-int m,y,z;
-int nono =5;
-m++;
-++m;
-m--;
---m;
+int y=5;
+y++;
+++y;
+int z =0;
+z--;
+--z;
+
+
+const int x = 5;
+TYPE -> int
+Identifer_name -> x
+5 -> value
