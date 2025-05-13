@@ -126,7 +126,7 @@ declaration:
         if (result) {
             Value myvalue;
             for (int i = 0; i < count; i++) {
-                addSymbol(result[i], $1, false, myvalue, false, false, NULL, NULL);
+                addSymbol(result[i], $1, false, myvalue, false, false, NULL);
             }
             free_split_result(result, count);
         } else {
@@ -134,7 +134,7 @@ declaration:
         }
     }
     | TYPE IDENTIFIER ASSIGN expression {
-        addSymbol($2, $1, true , $4.value, false, false, NULL, NULL);
+        addSymbol($2, $1, true , $4.value, false, false, NULL);
     }
     | TYPE error {
         report_error(SYNTAX_ERROR, "Expected identifier after type", prev_valid_line);
@@ -248,12 +248,12 @@ for_stmt:
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $4.value;
-        addSymbol($2, $1, true, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, true, myValue, true, false, NULL);
     }
     | TYPE IDENTIFIER {
         //wrong rule (fofa - used without declaration)
         Value myValue;
-        addSymbol($2, $1, false, myValue, false, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, false, false, NULL);
     }
     | IDENTIFIER ASSIGN expression {
         updateSymbolValue($1, $3.value);
@@ -532,7 +532,7 @@ params:
 
 param_list:
     param_list COMMA param {
-        // $$ = addParameter($1, $3);  // Add the parameter to the list
+        $$ = addParameter($1, $3);  // Add the parameter to the list
     }
     | param {
         $$ = $1;
@@ -542,7 +542,7 @@ param_list:
 param:
     TYPE IDENTIFIER {
         Value myValue;
-        addSymbol($2, $1, false, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, true, false, NULL);
         $$ = createParameter($2, $1);  // Create a new parameter
     }
     ;
@@ -550,7 +550,7 @@ param:
 const_decl: 
     CONST TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $5.value;
-        addSymbol($3, $2, true, myValue, true, false, NULL, NULL);
+        addSymbol($3, $2, true, myValue, true, false, NULL);
     }
     ;
 

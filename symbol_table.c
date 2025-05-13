@@ -30,13 +30,13 @@ void exitScope() {
     currentScope = currentScope->parent;  
 }
 
-void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params, char *returnType) {
+void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params) {
     if (currentScope == NULL) {
         initSymbolTable();
     }
 
     if (name == NULL || type == NULL) {
-        printf("Error: Invalid parameters passed to addSymbol\n");
+        printf("Error: Invalid parameters missing name\n");
         return NULL;
     }
 
@@ -54,7 +54,6 @@ void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isC
 
     newEntry->identifierName = strdup(name);
     newEntry->type = mapStringToValueType(type);
-    newEntry->returnType = (isFunction && returnType) ? strdup(returnType) : NULL;
     newEntry->isConst = isConst;
     newEntry->isInitialized = isIntialized; 
     newEntry->isUsed = false;
@@ -128,7 +127,7 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
         while (symbol != NULL) {
             char valueStr[256] = "N/A";
 
-            if (symbol->isInitialized) {
+            if (symbol->isInitialized && symbol->isFunction ==false) {
                 switch (symbol->type) {
                     case INT_TYPE:
                         sprintf(valueStr, "%d", symbol->value.iVal);
@@ -151,17 +150,19 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
             }
 
             fprintf(file,
-                    "Name: %s, Type: %s (%d), Value: %s, ReturnType: %s, Const: %d, Initialized: %d, Used: %d, IsFunction: %d\n",
-                    symbol->identifierName,
-                    valueTypeToString(symbol->type),
-                    symbol->type,
-                    valueStr,
-                    symbol->isFunction && symbol->returnType ? symbol->returnType : "N/A",
-                    symbol->isConst,
-                    symbol->isInitialized,
-                    symbol->isUsed,
-                    symbol->isFunction
+                "Name: %s, Type: %s (%d), Value: %s, Const: %d, Initialized: %d, Used: %d, IsFunction: %d, Params: %s\n",
+                symbol->identifierName,
+                valueTypeToString(symbol->type),
+                symbol->type,
+                valueStr,
+                symbol->isConst,
+                symbol->isInitialized,
+                symbol->isUsed,
+                symbol->isFunction,
+                parameterListToString(symbol->params)
             );
+
+
 
             symbol = symbol->next;
         }
@@ -177,9 +178,6 @@ void clearSymbolTables(Scope *scope) {
         SymbolTableEntry *temp = symbol;
         symbol = symbol->next;
         free(temp->identifierName);
-        if (temp->returnType) {
-            free(temp->returnType);
-        }
         free(temp);
     }
     if (scope->parent) {
@@ -194,6 +192,7 @@ ValueType mapStringToValueType(const char *typeStr) {
     if (strcmp(typeStr, "string") == 0) return STRING_TYPE;
     if (strcmp(typeStr, "bool") == 0) return BOOL_TYPE;
     if (strcmp(typeStr, "char") == 0) return CHAR_TYPE;
+    if (strcmp(typeStr, "void") == 0) return VOID_TYPE;
 
     fprintf(stderr, "Unknown type string: '%s'\n", typeStr);
     exit(EXIT_FAILURE);
@@ -206,7 +205,7 @@ const char *valueTypeToString(ValueType type) {
         case STRING_TYPE: return "string";
         case BOOL_TYPE: return "bool";
         case CHAR_TYPE: return "char";
-        default: return "unknown";
+        default: return "void";
     }
 }
 

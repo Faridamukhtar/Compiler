@@ -186,12 +186,24 @@ function int main() {
 }
 =======
 const int x = 5;
-const bool flag = true;
-const float pi = 3.14;
-int m,y,z;
-int nono =5;
-m++;
-++m;
-m--;
---m;
->>>>>>> 3e2f2a1 (chore: added some symbol table handling):input.txt
+int y=5;
+y++;
+++y;
+int z =0;
+z--;
+--z;
+bool t = false;
+bool c = true;
+float t=3.14;
+string m ="mimo";
+m="zozi";
+char a = "a";
+
+if (x==y) {
+    int x=0;
+    int m,x,s;
+}
+
+function int add(int a, int b) {
+    return a + b;
+}
