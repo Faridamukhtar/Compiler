@@ -328,27 +328,27 @@ assignment:
     }
     ;
 
-
 if_stmt:
     IF LPAREN expression RPAREN {
         char *true_label = new_label();
         char *false_label = new_label();
         char *next_label = new_label();
 
+        // Emit conditional jump
         if ($3.temp_var) {
             add_quadruple(OP_IFGOTO, $3.temp_var, NULL, true_label);
         } else {
-            char *expr_result = malloc(50);
+            char expr_result[50];
             switch ($3.type) {
-                case INT_TYPE: sprintf(expr_result, "%d", $3.value.iVal); break;
+                case INT_TYPE:   sprintf(expr_result, "%d", $3.value.iVal); break;
                 case FLOAT_TYPE: sprintf(expr_result, "%f", $3.value.fVal); break;
-                case BOOL_TYPE: sprintf(expr_result, "%s", $3.value.bVal ? "true" : "false"); break;
-                default: strcpy(expr_result, "unknown");
+                case BOOL_TYPE:  sprintf(expr_result, "%s", $3.value.bVal ? "true" : "false"); break;
+                default:         strcpy(expr_result, "unknown");
             }
             add_quadruple(OP_IFGOTO, expr_result, NULL, true_label);
-            free(expr_result);
         }
 
+        // Jump to else block if condition is false
         add_quadruple(OP_GOTO, NULL, NULL, false_label);
         add_quadruple(OP_LABEL, NULL, NULL, true_label);
 
@@ -358,17 +358,23 @@ if_stmt:
             .next_label = next_label,
             .code = NULL
         };
-    } LBRACE {enterScope();} statement_list RBRACE {exitScope();} else_part {
+    }
+    LBRACE { enterScope(); }
+    statement_list
+    RBRACE { 
+        exitScope(); 
+        // End of 'then' block, jump to end of if-else
         add_quadruple(OP_GOTO, NULL, NULL, $<code_info>5.next_label);
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.false_label);
-
-        if ($11.code) {
+    }
+    else_part {
+        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.next_label);
+        // Emit any else statements
+        if ($11.code != NULL) {
             $$.code = $11.code;
-        } else {
-            add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.next_label);
-            $$.code = NULL;
         }
 
+        // Free all labels
         free($<code_info>5.true_label);
         free($<code_info>5.false_label);
         free($<code_info>5.next_label);
