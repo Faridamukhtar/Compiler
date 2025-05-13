@@ -440,6 +440,15 @@ while_stmt:
         free($2.body_label);
         free($2.end_label);
     }
+    | WHILE while_header error {
+        report_error(SYNTAX_ERROR, "Expected '(' in while condition", prev_valid_line);
+        yyerrok;
+    }
+    | WHILE while_header LPAREN expression error LBRACE { enterScope(); } statement_list RBRACE {
+        exitScope();
+        report_error(SYNTAX_ERROR, "Expected ')' in while condition", prev_valid_line);
+        yyerrok;
+    }
 ;
 
 while_header:
