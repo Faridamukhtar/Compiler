@@ -156,7 +156,7 @@ statement:
         /* This would need to keep track of current loop's continue label */
 
     | BREAK SEMI {
-        add_quadruple(OP_GOTO, get_break_label(), NULL, NULL);
+        add_quadruple(OP_GOTO, NULL, NULL, get_break_label());
     }
         /* Generate code for break - usually jumps to end of loop */
         /* This would need to keep track of current loop's exit label */
