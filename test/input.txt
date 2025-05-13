@@ -56,4 +56,4 @@ const q = 100;
 
 int p;
 
-int m4 = sum('a','b');
+int m4 = sum(5,3,1);

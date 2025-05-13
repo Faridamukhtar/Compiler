@@ -55,6 +55,7 @@ void yyerror(const char *s);
 %type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr function_call
 %type <param_list> params param_list param
 %type <s> identifier_list
+%type <param_list> argument_list
 
 /* Define operator precedence */
 %left OR
@@ -646,9 +647,13 @@ function_call:
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            $$ = (expr){.type = BOOL_TYPE};  // fallback
+            $$ = (expr){.type = BOOL_TYPE};
         } else {
             entry->isUsed = true;
+            if (!compareParameters(entry->params, $3)) {
+                report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Arguments passed to function '%s' do not match its definition.\n", prev_valid_line, $1);
+            }
             $$ = (expr){.type = entry->type, .value = (Value){}};
         }
     }
@@ -660,6 +665,10 @@ function_call:
             $$ = (expr){.type = BOOL_TYPE};
         } else {
             entry->isUsed = true;
+            if (entry->params != NULL) {
+                report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Function '%s' expects arguments, but none were given.\n", prev_valid_line, $1);
+            }
             $$ = (expr){.type = entry->type, .value = (Value){}};
         }
     }
@@ -674,9 +683,16 @@ function_call:
     ;
 
 argument_list:
-    argument_list COMMA expression
-    | expression
-    ;
+    argument_list COMMA expression {
+        const char* t = typeToString($3.type);
+        Parameter* arg = createParameter("arg", strdup(t));
+        $$ = addParameter($1, arg);
+    }
+    | expression {
+        const char* t = typeToString($1.type);
+        $$ = createParameter("arg", strdup(t));
+    }
+
 
 params:
     /* empty */ { $$ = NULL; }

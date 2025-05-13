@@ -1,15 +1,8 @@
-TODO 3ND EL SYMBOL TABLE 
-
 MIRA  
-1. is string copy pointer or copy mem ?                             
-3. Function checks 
-c. correct number and types of parameters when calling a function
+1. is string copy pointer or copy mem ?   
+2. GUI                          
 
 Monmon and Fofa
 1. Make sure that all the syntax errors are handled properly and the error messages are clear and informative.
 2. N3ml al semantic errors b3d ama al semantic analyzer yb2a fifnito
 3. quadrabule code generation 
-
-
-int x=5;
-x = x + 3.14; 

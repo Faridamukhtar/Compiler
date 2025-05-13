@@ -91,3 +91,14 @@ char* concat_with_comma(const char* str1, const char* str2) {
     return result;
 }
 
+const char* typeToString(ValueType type) {
+    switch (type) {
+        case INT_TYPE: return "int";
+        case FLOAT_TYPE: return "float";
+        case STRING_TYPE: return "string";
+        case BOOL_TYPE: return "bool";
+        case CHAR_TYPE: return "char";
+        case VOID_TYPE: return "void";
+        default: return "unknown";
+    }
+}

@@ -70,3 +70,12 @@ char* parameterListToString(const Parameter* head) {
     return buffer;
 }
 
+bool compareParameters(Parameter* declared, Parameter* passed) {
+    while (declared && passed) {
+        if (strcmp(declared->type, passed->type) != 0)
+            return false;
+        declared = declared->next;
+        passed = passed->next;
+    }
+    return declared == NULL && passed == NULL;
+}
