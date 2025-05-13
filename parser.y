@@ -1475,7 +1475,7 @@ repeat_stmt: REPEAT LBRACE {
 ;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN param_list RPAREN LBRACE {
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {
         Value myValue;
         myValue.iVal = 0;  // Initialize with a default value
         addSymbol($3, $2, true, myValue, false, true, $5);
