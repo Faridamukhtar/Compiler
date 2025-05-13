@@ -4,6 +4,11 @@
 #include "parameter.h"
 
 Parameter* createParameter(const char *name, const char *type) {
+    if (!name || !type) {
+        fprintf(stderr, "Error: Invalid parameters missing name\n");
+        return NULL;
+    }
+
     Parameter *param = (Parameter*)malloc(sizeof(Parameter));
     if (!param) return NULL;
 
@@ -12,6 +17,7 @@ Parameter* createParameter(const char *name, const char *type) {
     param->next = NULL;
     return param;
 }
+
 
 Parameter* addParameter(Parameter *head, Parameter *param) {
     if (!param) return head;
