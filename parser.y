@@ -106,6 +106,7 @@ char *default_label = NULL;
 %type <temp_var> function_call
 %type <void_val> statement_list case_list default_case
 
+/* Define operator precedence */
 %left OR
 %left AND
 %left EQ NEQ
@@ -155,7 +156,7 @@ statement:
     }
         /* Generate code for break - usually jumps to end of loop */
         /* This would need to keep track of current loop's exit label */
-    | LBRACE statement_list RBRACE
+    | LBRACE {enterScope();}  statement_list RBRACE {exitScope();}
     | declaration error {
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
@@ -195,6 +196,7 @@ declaration:
             myvalue.iVal = 0; // Initialize to default
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
+                    report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
                     fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, result[i]);
                 } else {
                     addSymbol(result[i], $1, false, myvalue, false, false, NULL);
@@ -207,27 +209,34 @@ declaration:
     }
     | TYPE IDENTIFIER ASSIGN expression {
         if (isSymbolDeclaredInCurrentScope($2)) {
+            report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, $2);
         } else {
-            Value myValue = $4.value;
-            addSymbol($2, $1, true, myValue, false, false, NULL);
-            char *expr_result;
-            if ($4.temp_var) {
-                expr_result = $4.temp_var;
+            ValueType declaredType = mapStringToValueType($1);
+            if (!areTypesCompatible(declaredType, $4.type)) {
+                report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $2);
             } else {
-                expr_result = malloc(50);
-                switch ($4.type) {
-                    case INT_TYPE: sprintf(expr_result, "%d", $4.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(expr_result, "%f", $4.value.fVal); break;
-                    case BOOL_TYPE: sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false"); break;
-                    case CHAR_TYPE: sprintf(expr_result, "'%c'", $4.value.cVal); break;
-                    case STRING_TYPE: sprintf(expr_result, "\"%s\"", $4.value.sVal); break;
-                    default: strcpy(expr_result, "unknown");
+                Value myValue = $4.value;
+                addSymbol($2, $1, true, myValue, false, false, NULL);
+                char *expr_result;
+                if ($4.temp_var) {
+                    expr_result = $4.temp_var;
+                } else {
+                    expr_result = malloc(50);
+                    switch ($4.type) {
+                        case INT_TYPE: sprintf(expr_result, "%d", $4.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(expr_result, "%f", $4.value.fVal); break;
+                        case BOOL_TYPE: sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false"); break;
+                        case CHAR_TYPE: sprintf(expr_result, "'%c'", $4.value.cVal); break;
+                        case STRING_TYPE: sprintf(expr_result, "\"%s\"", $4.value.sVal); break;
+                        default: strcpy(expr_result, "unknown");
+                    }
                 }
-            }
-            add_quadruple(OP_ASSIGN, expr_result, NULL, $2);
-            if (!$4.temp_var) {
-                free(expr_result);
+                add_quadruple(OP_ASSIGN, expr_result, NULL, $2);
+                if (!$4.temp_var) {
+                    free(expr_result);
+                }
             }
         }
     }
@@ -243,15 +252,17 @@ declaration:
 
 identifier_list:
     IDENTIFIER
+    {$$ = $1;}
     | identifier_list COMMA IDENTIFIER {
+        $$ = concat_with_comma($1,$3); //TODO:CHECK
         /* Append the new identifier to the list */
-        int len1 = strlen($1);
-        int len3 = strlen($3);
-        $$ = malloc(len1 + len3 + 2); /* +2 for the comma and null terminator */
-        strcpy($$, $1);
-        strcat($$, ",");
-        strcat($$, $3);
-        free($1); /* Free the old string */
+        //int len1 = strlen($1);
+        //int len3 = strlen($3);
+        //$$ = malloc(len1 + len3 + 2); /* +2 for the comma and null terminator */
+        //strcpy($$, $1);
+        //strcat($$, ",");
+        //strcat($$, $3);
+        //free($1); /* Free the old string */
     }
     | identifier_list COMMA error {
         report_error(SYNTAX_ERROR, "Expected an identifier", prev_valid_line);
@@ -261,74 +272,111 @@ identifier_list:
 
 assignment:
     IDENTIFIER INC {
-        if (!lookupSymbol($1)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
-        } else {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+           report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
+            // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
             handlePrefixInc($1);
             add_quadruple(OP_INC, $1, NULL, $1);
         }
     }
     | IDENTIFIER DEC {
-        if (!lookupSymbol($1)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
-        } else {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
+            // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
             handlePostfixDec($1);
             add_quadruple(OP_DEC, $1, NULL, $1);
         }
     }
     | INC IDENTIFIER {
-        if (!lookupSymbol($2)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
-        } else {
+        SymbolTableEntry *entry = lookupSymbol($2);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
+            // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
+            }
             handlePrefixInc($2);
             add_quadruple(OP_INC, $2, NULL, $2);
         }
     }
     | DEC IDENTIFIER {
-        if (!lookupSymbol($2)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
-        } else {
+        SymbolTableEntry *entry = lookupSymbol($2);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
+            // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
+            }
             handlePostfixDec($2);
             add_quadruple(OP_DEC, $2, NULL, $2);
         }
     }
     | IDENTIFIER ASSIGN expression {
-        if (!lookupSymbol($1)) {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
         } else {
-            Value myValue = $3.value;
-            addSymbol($1, $1, true, myValue, false, false, NULL);
-            char *expr_result;
-            if ($3.temp_var) {
-                expr_result = $3.temp_var;
-            } else {
-                expr_result = malloc(50);
-                switch ($3.type) {
-                    case INT_TYPE:
-                        sprintf(expr_result, "%d", $3.value.iVal);
-                        break;
-                    case FLOAT_TYPE:
-                        sprintf(expr_result, "%f", $3.value.fVal);
-                        break;
-                    case BOOL_TYPE:
-                        sprintf(expr_result, "%s", $3.value.bVal ? "true" : "false");
-                        break;
-                    case CHAR_TYPE:
-                        sprintf(expr_result, "'%c'", $3.value.cVal);
-                        break;
-                    case STRING_TYPE:
-                        sprintf(expr_result, "\"%s\"", $3.value.sVal);
-                        break;
-                    default:
-                        strcpy(expr_result, "unknown");
-                }
+            if (!areTypesCompatible(entry->type, $3.type)) {
+                report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $1);
             }
-            add_quadruple(OP_ASSIGN, expr_result, NULL, $1);
-            if (!$3.temp_var) {
-                free(expr_result);
+            else {
+                Value myValue = $3.value;
+                updateSymbolValue($1, myValue);
+                char *expr_result;
+                if ($3.temp_var) {
+                    expr_result = $3.temp_var;
+                } else {
+                    expr_result = malloc(50);
+                    switch ($3.type) {
+                        case INT_TYPE:
+                            sprintf(expr_result, "%d", $3.value.iVal);
+                            break;
+                        case FLOAT_TYPE:
+                            sprintf(expr_result, "%f", $3.value.fVal);
+                            break;
+                        case BOOL_TYPE:
+                            sprintf(expr_result, "%s", $3.value.bVal ? "true" : "false");
+                            break;
+                        case CHAR_TYPE:
+                            sprintf(expr_result, "'%c'", $3.value.cVal);
+                            break;
+                        case STRING_TYPE:
+                            sprintf(expr_result, "\"%s\"", $3.value.sVal);
+                            break;
+                        default:
+                            strcpy(expr_result, "unknown");
+                    }
+                }
+                add_quadruple(OP_ASSIGN, expr_result, NULL, $1);
+                if (!$3.temp_var) {
+                    free(expr_result);
+                }
             }
         }
     }
+
     | IDENTIFIER ASSIGN error {
         report_error(SYNTAX_ERROR, "Expected an expression", prev_valid_line);
         yyerrok;
@@ -398,7 +446,7 @@ if_stmt:
         report_error(SYNTAX_ERROR, "Malformed if statement", prev_valid_line);
         yyerrok;
     }
-;
+    ;
 
 else_part:
     ELSE LBRACE {
@@ -413,7 +461,7 @@ else_part:
     | /* empty */ {
         $$.code = NULL;
     }
-;
+    ;
 
 while_stmt:
     WHILE while_header LPAREN expression {
@@ -476,7 +524,7 @@ while_header:
         $$.body_label  = body_label;
         $$.end_label  = end_label;
     }
-;
+    ;
 
 for_stmt:
     FOR LPAREN for_header assignment RPAREN for_body {
@@ -582,10 +630,10 @@ for_stmt_declaration:
         Value myValue;
         myValue.iVal = 0; // Initialize to default
         addSymbol($2, $1, false, myValue, false, false, NULL);
-    }
+        }    
     | IDENTIFIER ASSIGN expression {
         Value myValue = $3.value;
-        addSymbol($1, NULL, true, myValue, false, false, NULL);
+        updateSymbolValue($1, myValue);
         char *expr_result;
         if ($3.temp_var) {
             expr_result = $3.temp_var;
@@ -628,7 +676,7 @@ for_stmt_declaration:
         report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
         yyerrok;
     }
-;
+    ;
 
 CONSTANT_VAL:
       INT      { Value v; v.iVal = $1; $$ = (expr){.type = INT_TYPE, .value = v, .temp_var = NULL}; }
@@ -671,7 +719,7 @@ switch_stmt:
         report_error(SYNTAX_ERROR, "Malformed switch statement", prev_valid_line);
         yyerrok;
     }
-;
+    ;
 
 case_list:
     /* empty */ { $$ = NULL; }
@@ -716,7 +764,7 @@ case_item:
         report_error(SYNTAX_ERROR, "Invalid constant in switch case", prev_valid_line);
         yyerrok;
     }
-;
+    ;
 
 default_case:
     DEFAULT COLON {
@@ -768,11 +816,11 @@ return_stmt:
         /* Generate empty return quadruple */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
     }
-;
+    ;
 
 expression:
     logical_expr { $$ = $1; }
-;
+    ;
 
 logical_expr:
     logical_expr OR logical_term {
@@ -812,7 +860,7 @@ logical_expr:
         $$.temp_var = temp;
     }
     | logical_term { $$ = $1; }
-;
+    ;
 
 logical_term:
     logical_term AND equality_expr {
@@ -852,7 +900,7 @@ logical_term:
         $$.temp_var = temp;
     }
     | equality_expr { $$ = $1; }
-;
+    ;
 
 equality_expr:
     equality_expr EQ relational_expr {
@@ -932,7 +980,7 @@ equality_expr:
         $$.temp_var = temp;
     }
     | relational_expr { $$ = $1; }
-;
+    ;
 
 relational_expr:
     relational_expr LT additive_expr {
@@ -1090,90 +1138,104 @@ relational_expr:
 
 additive_expr:
     additive_expr PLUS multiplicative_expr {
-        /* Generate quadruple for addition */
-        char *temp = new_temp();
-        if ($1.temp_var && $3.temp_var) {
-            add_quadruple(OP_ADD, $1.temp_var, $3.temp_var, temp);
-        } else {
-            /* Handle literals or expressions without temp vars */
-            char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
-            char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
-            
-            if (!$1.temp_var) {
-                switch ($1.type) {
-                    case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
-                    default: strcpy(arg1, "unknown");
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in addition.\n", prev_valid_line);
+        }
+        else
+        {
+            /* Generate quadruple for addition */
+            char *temp = new_temp();
+            if ($1.temp_var && $3.temp_var) {
+                add_quadruple(OP_ADD, $1.temp_var, $3.temp_var, temp);
+            } else {
+                /* Handle literals or expressions without temp vars */
+                char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
+                char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
+                
+                if (!$1.temp_var) {
+                    switch ($1.type) {
+                        case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
+                        default: strcpy(arg1, "unknown");
+                    }
                 }
+                
+                if (!$3.temp_var) {
+                    switch ($3.type) {
+                        case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
+                        default: strcpy(arg2, "unknown");
+                    }
+                }
+                
+                add_quadruple(OP_ADD, arg1, arg2, temp);
+                
+                if (!$1.temp_var) free(arg1);
+                if (!$3.temp_var) free(arg2);
             }
             
-            if (!$3.temp_var) {
-                switch ($3.type) {
-                    case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
-                    default: strcpy(arg2, "unknown");
-                }
+            /* Determine the type of the result */
+            if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
+                $$.type = FLOAT_TYPE;
+                $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) + 
+                            ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
+            } else {
+                $$.type = INT_TYPE;
+                $$.value.iVal = $1.value.iVal + $3.value.iVal;
             }
-            
-            add_quadruple(OP_ADD, arg1, arg2, temp);
-            
-            if (!$1.temp_var) free(arg1);
-            if (!$3.temp_var) free(arg2);
+            $$.temp_var = temp;
         }
-        
-        /* Determine the type of the result */
-        if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
-            $$.type = FLOAT_TYPE;
-            $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) + 
-                           ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
-        } else {
-            $$.type = INT_TYPE;
-            $$.value.iVal = $1.value.iVal + $3.value.iVal;
-        }
-        $$.temp_var = temp;
     }
     | additive_expr MINUS multiplicative_expr {
-        /* Generate quadruple for subtraction */
-        char *temp = new_temp();
-        if ($1.temp_var && $3.temp_var) {
-            add_quadruple(OP_SUB, $1.temp_var, $3.temp_var, temp);
-        } else {
-            /* Handle literals or expressions without temp vars */
-            char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
-            char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
-            
-            if (!$1.temp_var) {
-                switch ($1.type) {
-                    case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
-                    default: strcpy(arg1, "unknown");
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in subtraction.\n", prev_valid_line);
+        }
+        else
+        {
+             /* Generate quadruple for subtraction */
+            char *temp = new_temp();
+            if ($1.temp_var && $3.temp_var) {
+                add_quadruple(OP_SUB, $1.temp_var, $3.temp_var, temp);
+            } else {
+                /* Handle literals or expressions without temp vars */
+                char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
+                char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
+                
+                if (!$1.temp_var) {
+                    switch ($1.type) {
+                        case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
+                        default: strcpy(arg1, "unknown");
+                    }
                 }
+                
+                if (!$3.temp_var) {
+                    switch ($3.type) {
+                        case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
+                        default: strcpy(arg2, "unknown");
+                    }
+                }
+                
+                add_quadruple(OP_SUB, arg1, arg2, temp);
+                
+                if (!$1.temp_var) free(arg1);
+                if (!$3.temp_var) free(arg2);
             }
             
-            if (!$3.temp_var) {
-                switch ($3.type) {
-                    case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
-                    default: strcpy(arg2, "unknown");
-                }
+            /* Determine the type of the result */
+            if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
+                $$.type = FLOAT_TYPE;
+                $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) - 
+                            ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
+            } else {
+                $$.type = INT_TYPE;
+                $$.value.iVal = $1.value.iVal - $3.value.iVal;
             }
-            
-            add_quadruple(OP_SUB, arg1, arg2, temp);
-            
-            if (!$1.temp_var) free(arg1);
-            if (!$3.temp_var) free(arg2);
+            $$.temp_var = temp;
         }
-        
-        /* Determine the type of the result */
-        if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
-            $$.type = FLOAT_TYPE;
-            $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) - 
-                           ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
-        } else {
-            $$.type = INT_TYPE;
-            $$.value.iVal = $1.value.iVal - $3.value.iVal;
-        }
-        $$.temp_var = temp;
     }
     | multiplicative_expr {
         $$ = $1;
@@ -1182,6 +1244,12 @@ additive_expr:
 
 multiplicative_expr:
     multiplicative_expr MUL exponent_expr {
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in multiplication.\n", prev_valid_line);
+        }
+        else
+        {
         /* Generate quadruple for multiplication */
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
@@ -1223,8 +1291,15 @@ multiplicative_expr:
             $$.value.iVal = $1.value.iVal * $3.value.iVal;
         }
         $$.temp_var = temp;
+        }
     }
     | multiplicative_expr DIV exponent_expr {
+    if (!areTypesCompatible($1.type, $3.type)) {
+        report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Incompatible types in division.\n", prev_valid_line);
+    }
+    else
+    {
         /* Check for division by zero */
         if (($3.type == INT_TYPE && $3.value.iVal == 0) || 
             ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
@@ -1273,92 +1348,101 @@ multiplicative_expr:
         }
         $$.temp_var = temp;
     }
-    | multiplicative_expr MOD exponent_expr {
-        /* Check for modulo by zero */
-        if (($3.type == INT_TYPE && $3.value.iVal == 0) || 
-            ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
-            fprintf(stderr, "Semantic Error (line %d): Modulo by zero.\n", prev_valid_line);
+}
+
+| multiplicative_expr MOD exponent_expr {
+    /* Check for modulo by zero */
+    if (($3.type == INT_TYPE && $3.value.iVal == 0) || 
+        ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
+        fprintf(stderr, "Semantic Error (line %d): Modulo by zero.\n", prev_valid_line);
+    }
+    
+    /* Generate quadruple for modulo */
+    char *temp = new_temp();
+    if ($1.temp_var && $3.temp_var) {
+        add_quadruple(OP_MOD, $1.temp_var, $3.temp_var, temp);
+    } else {
+        /* Handle literals or expressions without temp vars */
+        char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
+        char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
+        
+        if (!$1.temp_var) {
+            switch ($1.type) {
+                case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
+                case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
+                default: strcpy(arg1, "unknown");
+            }
         }
         
-        /* Generate quadruple for modulo */
-        char *temp = new_temp();
-        if ($1.temp_var && $3.temp_var) {
-            add_quadruple(OP_MOD, $1.temp_var, $3.temp_var, temp);
-        } else {
-            /* Handle literals or expressions without temp vars */
-            char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
-            char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
-            
-            if (!$1.temp_var) {
-                switch ($1.type) {
-                    case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
-                    default: strcpy(arg1, "unknown");
-                }
+        if (!$3.temp_var) {
+            switch ($3.type) {
+                case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
+                case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
+                default: strcpy(arg2, "unknown");
             }
-            
-            if (!$3.temp_var) {
-                switch ($3.type) {
-                    case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
-                    default: strcpy(arg2, "unknown");
-                }
-            }
-            
-            add_quadruple(OP_MOD, arg1, arg2, temp);
-            
-            if (!$1.temp_var) free(arg1);
-            if (!$3.temp_var) free(arg2);
         }
         
-        /* Modulo only works on integers */
-        $$.type = INT_TYPE;
-        $$.value.iVal = $1.value.iVal % $3.value.iVal;
-        $$.temp_var = temp;
+        add_quadruple(OP_MOD, arg1, arg2, temp);
+        
+        if (!$1.temp_var) free(arg1);
+        if (!$3.temp_var) free(arg2);
     }
-    | exponent_expr {
-        $$ = $1;
-    }
-    ;
+    
+    /* Modulo only works on integers */
+    $$.type = INT_TYPE;
+    $$.value.iVal = $1.value.iVal % $3.value.iVal;
+    $$.temp_var = temp;
+}
+| exponent_expr {
+    $$ = $1;
+}
+;
 
 exponent_expr:
     exponent_expr EXP unary_expr {
-        /* Generate quadruple for exponentiation */
-        char *temp = new_temp();
-        if ($1.temp_var && $3.temp_var) {
-            add_quadruple(OP_EXP, $1.temp_var, $3.temp_var, temp);
-        } else {
-            /* Handle literals or expressions without temp vars */
-            char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
-            char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
-            
-            if (!$1.temp_var) {
-                switch ($1.type) {
-                    case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
-                    default: strcpy(arg1, "unknown");
-                }
-            }
-            
-            if (!$3.temp_var) {
-                switch ($3.type) {
-                    case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
-                    case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
-                    default: strcpy(arg2, "unknown");
-                }
-            }
-            
-            add_quadruple(OP_EXP, arg1, arg2, temp);
-            
-            if (!$1.temp_var) free(arg1);
-            if (!$3.temp_var) free(arg2);
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in exponentiation.\n", prev_valid_line);
         }
-        
-        /* For simplicity, result is float */
-        $$.type = FLOAT_TYPE;
-        /* Actual computation would be done by the target language */
-        $$.value.fVal = 0.0;  /* Placeholder */
-        $$.temp_var = temp;
+        else
+        {
+            /* Generate quadruple for exponentiation */
+            char *temp = new_temp();
+            if ($1.temp_var && $3.temp_var) {
+                add_quadruple(OP_EXP, $1.temp_var, $3.temp_var, temp);
+            } else {
+                /* Handle literals or expressions without temp vars */
+                char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
+                char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
+                
+                if (!$1.temp_var) {
+                    switch ($1.type) {
+                        case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
+                        default: strcpy(arg1, "unknown");
+                    }
+                }
+                
+                if (!$3.temp_var) {
+                    switch ($3.type) {
+                        case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
+                        default: strcpy(arg2, "unknown");
+                    }
+                }
+                
+                add_quadruple(OP_EXP, arg1, arg2, temp);
+                
+                if (!$1.temp_var) free(arg1);
+                if (!$3.temp_var) free(arg2);
+            }
+            
+            /* For simplicity, result is float */
+            $$.type = FLOAT_TYPE;
+            /* Actual computation would be done by the target language */
+            $$.value.fVal = 0.0;  /* Placeholder */
+            $$.temp_var = temp;
+        }
     }
     | unary_expr {
         $$ = $1;
@@ -1423,7 +1507,6 @@ unary_expr:
         $$ = $1; 
     }
     ;
-
 primary_expr:
     INT {
         Value val;
@@ -1447,27 +1530,37 @@ primary_expr:
     }
     | STRING {
         Value val;
-        val.sVal = strdup($1);
+        size_t len = strlen($1);
+        if (len >= 2) {
+            char* cropped = (char*)malloc(len - 1); 
+            strncpy(cropped, $1 + 1, len - 2);
+            cropped[len - 2] = '\0'; 
+            val.sVal = cropped;
+        } else {
+            val.sVal = strdup(""); 
+        }
         $$ = (expr){.type = STRING_TYPE, .value = val, .temp_var = NULL};
     }
     | LPAREN expression RPAREN {
-        $$ = $2;
+        $$ = $2; 
     }
     | function_call {
-        $$.temp_var = $1;        // <-- Use the temp var from function_call rule
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true, .temp_var = $1};
     }
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);
         if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
-        if (!entry->isInitialized) {
-            fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+        else {
+            if (!entry->isInitialized  && !entry->isFunction) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
+            entry->isUsed = true;
+            $$ = (expr){.type = entry->type, .value = entry->value, .temp_var = strdup($1)};
         }
-        
-        /* No need to generate a quadruple for variable reference */
-        $$ = (expr){.type = entry->type, .value = entry->value, .temp_var = strdup($1)};
     }
     ;
 
@@ -1512,21 +1605,34 @@ repeat_stmt: REPEAT LBRACE {
     /* Clean up */
     free($<code_info>3.code);
     free(end_label);
-}
-;
+    }
+    ;
 
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {
         Value myValue;
         myValue.iVal = 0;  // Initialize with a default value
-        addSymbol($3, $2, true, myValue, false, true, $5);
+        addSymbol($3, $2, true, myValue, false, true, $5); 
         enterScope();
+        addParamsToSymbolTable($5);
         add_quadruple(OP_LABEL, $3, NULL, NULL);
     } statement_list RBRACE {
         /* Generate implicit return if none exists */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
         exitScope();
     }
+    /* | FUNCTION error {
+        report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
+        yyerrok;
+    }
+    | FUNCTION TYPE IDENTIFIER error {
+        report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
+        yyerrok;
+    }
+    | FUNCTION TYPE IDENTIFIER LPAREN params error {
+        report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
+        yyerrok;
+    } */
     ;
 
 function_call:
@@ -1597,7 +1703,7 @@ argument_list:
 params:
     /* empty */ { $$ = NULL; }
     | param_list { $$ = $1; }
-;
+    ;
 
 param_list:
     param_list COMMA param {
@@ -1645,7 +1751,7 @@ const_decl:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Error: %s\n", s);
+    
 }
 
 int main() {
@@ -1691,9 +1797,11 @@ int main() {
         if (output) {
             writeSymbolTableOfAllScopesToFile(output);
             fclose(output);
-            printf("Symbol table written to symbol_table.txt\n");
+        } else {
+            printf("Failed to open symbol_table.txt for writing.\n");
         }
-        
+
+        reportUnusedVariables();
         fclose(input);
         clearSymbolTables(currentScope);
     } else {
