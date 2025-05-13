@@ -159,7 +159,11 @@ declaration:
 
 identifier_list:
     IDENTIFIER
+    {$$ = $1;}
     | identifier_list COMMA IDENTIFIER
+    {
+        $$ = concat_with_comma($1,$3);
+    }
     | identifier_list COMMA error {
         report_error(SYNTAX_ERROR, "Expected an identifier", prev_valid_line);
         yyerrok;
@@ -519,7 +523,6 @@ repeat_stmt:
     ;
 
 function_decl:
-function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN {
         Value myValue;
         addSymbol($3, $2, true, myValue, false, true, $5); 
@@ -543,8 +546,12 @@ function_decl:
     ;
 
 function_call:
-    IDENTIFIER LPAREN argument_list RPAREN
-    | IDENTIFIER LPAREN RPAREN
+    IDENTIFIER LPAREN argument_list RPAREN {
+        SymbolTableEntry *entry = lookupSymbol($1);
+    }
+    | IDENTIFIER LPAREN RPAREN {
+        SymbolTableEntry *entry = lookupSymbol($1);
+    }
     /* | IDENTIFIER error {
         report_error(SYNTAX_ERROR, "Expected '(' in function call", prev_valid_line);
         yyerrok;

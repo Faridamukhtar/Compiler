@@ -251,27 +251,6 @@ void handlePrefixInc(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
-// void addParamsToSymbolTable(const Parameter* head) {
-//     const Parameter* current = head;
-
-//     while (current != NULL) {
-//         Value defaultValue;
-
-//         addSymbol(
-//             current->name,
-//             current->type,
-//             true,          
-//             defaultValue,   
-//             false,          
-//             false,          
-//             NULL            
-//         );
-
-//         current = current->next;
-//     }
-// }
-
-
 void addParamsToSymbolTable(const Parameter* head) {
     const Parameter* param = head;
     while (param) {
