@@ -23,3 +23,9 @@ bin/
 # OS-specific files
 .DS_Store
 Custom Programming Language Specification.pdf
+
+# binaries and outputs
+compiler
+output.asm
+parser.output
+*.txt
