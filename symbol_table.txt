@@ -31,3 +31,12 @@ Name: y, Type: int (0), Value: 6, Const: 0, Initialized: 1, Used: 0, IsFunction:
 Name: x, Type: int (0), Value: 5, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: y, Type: int (0), Value: 6, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 
+=== Scope Level: 7 ===
+Name: x, Type: int (0), Value: 5, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: y, Type: int (0), Value: 6, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+
+=== Scope Level: 8 ===
+Name: x, Type: int (0), Value: 5, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: y, Type: int (0), Value: 6, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: z, Type: int (0), Value: 7, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+

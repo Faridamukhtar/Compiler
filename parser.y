@@ -44,6 +44,12 @@ void pop_loop_labels() {
     if (loop_label_top >= 0)
         loop_label_top--;
 }
+
+char *current_switch_var = NULL;
+char *current_switch_end_label = NULL;
+char *current_case_next_label = NULL;
+char *default_label = NULL;
+
 %}
 
 %code requires {
@@ -637,13 +643,17 @@ CONSTANT_VAL:
         $$ = (expr){.type = entry->type, .value = entry->value, .temp_var = strdup($1)};
     }
 ;
-
 switch_stmt:
     SWITCH LPAREN IDENTIFIER RPAREN {
-        char *end_label = new_label();
-        $<code_info>$.end_label = end_label;
-        $<code_info>$.code = strdup($3);
-    } LBRACE {enterScope();} case_list default_case RBRACE {
+        current_switch_end_label = new_label();
+        $<code_info>$ = (typeof($<code_info>$)){
+            .code = strdup($3),     // variable to match
+            .end_label = current_switch_end_label,
+            .true_label = NULL,
+            .false_label = NULL,
+            .next_label = NULL
+        };
+    } LBRACE { enterScope(); } case_list default_case RBRACE {
         exitScope();
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.end_label);
         free($<code_info>5.end_label);
@@ -675,25 +685,28 @@ case_item:
         char *val_str = malloc(50);
 
         switch ($2.type) {
-            case INT_TYPE: sprintf(val_str, "%d", $2.value.iVal); break;
+            case INT_TYPE:   sprintf(val_str, "%d", $2.value.iVal); break;
             case FLOAT_TYPE: sprintf(val_str, "%f", $2.value.fVal); break;
-            case BOOL_TYPE: sprintf(val_str, "%s", $2.value.bVal ? "true" : "false"); break;
-            case CHAR_TYPE: sprintf(val_str, "'%c'", $2.value.cVal); break;
-            case STRING_TYPE: sprintf(val_str, "\"%s\"", $2.value.sVal); break;
-            default: strcpy(val_str, "unknown");
+            case BOOL_TYPE:  sprintf(val_str, "%s", $2.value.bVal ? "true" : "false"); break;
+            case CHAR_TYPE:  sprintf(val_str, "'%c'", $2.value.cVal); break;
+            case STRING_TYPE:sprintf(val_str, "\"%s\"", $2.value.sVal); break;
+            default:          strcpy(val_str, "unknown");
         }
 
+        // t = switch_var == case_val
         char *temp = new_temp();
-        add_quadruple(OP_EQ, $<code_info>0.code, val_str, temp);
+        add_quadruple(OP_EQ, current_switch_var, val_str, temp);
+
+        // if t goto case_label, else goto next
         add_quadruple(OP_IFGOTO, temp, NULL, case_label);
         add_quadruple(OP_GOTO, NULL, NULL, next_case_label);
         add_quadruple(OP_LABEL, NULL, NULL, case_label);
 
-        $<code_info>$.next_label = next_case_label;
+        current_case_next_label = next_case_label;
         free(val_str);
     } statement_list {
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.next_label);
-        free($<code_info>5.next_label);
+        add_quadruple(OP_GOTO, NULL, NULL, current_switch_end_label);
+        add_quadruple(OP_LABEL, NULL, NULL, current_case_next_label);
     }
     | CASE CONSTANT_VAL error {
         report_error(SYNTAX_ERROR, "Expected ':'", prev_valid_line);
@@ -706,13 +719,18 @@ case_item:
 ;
 
 default_case:
-    DEFAULT COLON { add_quadruple(OP_LABEL, NULL, NULL, NULL); } statement_list { $$ = NULL; }
+    DEFAULT COLON {
+        default_label = new_label();
+        add_quadruple(OP_LABEL, NULL, NULL, default_label);
+    } statement_list {
+        add_quadruple(OP_GOTO, NULL, NULL, current_switch_end_label);
+    }
     | DEFAULT error {
         report_error(SYNTAX_ERROR, "Expected ':'", prev_valid_line);
         yyerrok;
     }
     | /* empty */ { $$ = NULL; }
-;
+    ;
 
 return_stmt:
     RETURN expression {

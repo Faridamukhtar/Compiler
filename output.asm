@@ -21,7 +21,12 @@ _start:
     mov dword [y], 6
     mov dword [x], 5
     mov dword [y], 6
-    mov dword [x], t6
+    mov dword [x], 5
+    mov dword [y], 6
+    mov dword [x], t7
+    mov dword [x], 5
+    mov dword [y], 6
+    mov dword [z], 7
     mov eax, 1
     xor ebx, ebx
     int 0x80
