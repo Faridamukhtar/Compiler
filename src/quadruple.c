@@ -1,10 +1,7 @@
-
 #include "quadruple.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define MAX_QUADS 1000
 
 Quadruple quadruples[MAX_QUADS];
 int quad_count = 0;
@@ -19,13 +16,27 @@ const char* get_op_string(OpType op) {
         case OP_MUL: return "*";
         case OP_DIV: return "/";
         case OP_MOD: return "%";
+        case OP_EXP: return "^";
         case OP_ASSIGN: return "=";
         case OP_GOTO: return "GOTO";
-        case OP_IFGOTO: return "IFGOTO";
+        case OP_IFGOTO: return "IF_GOTO";
+        case OP_IFFALSE: return "IF_FALSE";
         case OP_LABEL: return "LABEL";
         case OP_CALL: return "CALL";
         case OP_PARAM: return "PARAM";
         case OP_RETURN: return "RETURN";
+        case OP_LT: return "<";
+        case OP_GT: return ">";
+        case OP_LTE: return "<=";
+        case OP_GTE: return ">=";
+        case OP_EQ: return "==";
+        case OP_NEQ: return "!=";
+        case OP_AND: return "AND";
+        case OP_OR: return "OR";
+        case OP_NOT: return "NOT";
+        case OP_UMINUS: return "UMINUS";
+        case OP_INC: return "++";
+        case OP_DEC: return "--";
         default: return "UNKNOWN_OP";
     }
 }
@@ -42,9 +53,9 @@ char* new_label() {
     return label;
 }
 
-void add_quadruples(OpType op, const char* arg1, const char* arg2, const char* result) {
+void add_quadruple(OpType op, const char* arg1, const char* arg2, const char* result) {
     if (quad_count >= MAX_QUADS) {
-        fprintf(stderr, "Too many quadruples!\n");
+        fprintf(stderr, "Error: Too many quadruples!\n");
         exit(1);
     }
     quadruples[quad_count].op = op;
@@ -55,6 +66,7 @@ void add_quadruples(OpType op, const char* arg1, const char* arg2, const char* r
 }
 
 void print_quadruples() {
+    printf("\n=== Generated Quadruples ===\n");
     for (int i = 0; i < quad_count; i++) {
         printf("[%d] (%s, %s, %s, %s)\n", i,
             get_op_string(quadruples[i].op),
