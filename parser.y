@@ -93,7 +93,7 @@ void pop_loop_labels() {
 %type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
 %type <param_list> params param_list param
 %type <s> identifier_list
-%type <code_info> if_stmt else_part while_stmt for_stmt switch_stmt repeat_stmt case_list
+%type <code_info> if_stmt else_part while_stmt for_stmt switch_stmt repeat_stmt case_list for_header for_body
 %type <expr> CONSTANT_VAL
 %type <temp_var> function_call
 
@@ -490,87 +490,78 @@ while_stmt:
     }
     ;
 
+
 for_stmt:
-    FOR LPAREN for_stmt_declaration SEMI {
-        /* Generate label for condition */
-        char *cond_label = new_label();
-        add_quadruple(OP_LABEL, NULL, NULL, cond_label);
-        $<code_info>$.code = cond_label;
-    } expression SEMI {
-        /* Generate condition code */
-        char *body_label = new_label();
-        char *end_label = new_label();
-        char *incr_label = new_label();  /* For increment part */
-        
-        /* If expression has a temp variable */
-        if ($6.temp_var) {
-            add_quadruple(OP_IFGOTO, $6.temp_var, NULL, body_label);
-        } else {
-            /* Create a comparison with true */
-            char *expr_result = malloc(50);
-            switch ($6.type) {
-                case INT_TYPE:
-                    sprintf(expr_result, "%d", $6.value.iVal);
-                    break;
-                case FLOAT_TYPE:
-                    sprintf(expr_result, "%f", $6.value.fVal);
-                    break;
-                case BOOL_TYPE:
-                    sprintf(expr_result, "%s", $6.value.bVal ? "true" : "false");
-                    break;
-                default:
-                    strcpy(expr_result, "unknown");
-            }
-            add_quadruple(OP_IFGOTO, expr_result, NULL, body_label);
-            free(expr_result);
-        }
-        
-        add_quadruple(OP_GOTO, NULL, NULL, end_label);
-        
-        /* Store info for later */
-        $<code_info>$.cond_label = $<code_info>5.code;
-        $<code_info>$.body_label = body_label;
-        $<code_info>$.end_label = end_label;
-        $<code_info>$.incr_label = incr_label;
-    } assignment RPAREN {
-        /* Generate the body label before entering the body */
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>7.body_label);
-    } LBRACE {enterScope();} statement_list RBRACE {
-        exitScope();
-        
-        /* Generate code for increment part */
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>7.incr_label);
-        /* The increment part was already processed in 'assignment' */
-        
-        /* Jump back to condition */
-        add_quadruple(OP_GOTO, NULL, NULL, $<code_info>7.cond_label);
-        
-        /* End label */
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>7.end_label);
-        
-        /* Clean up */
-        free($<code_info>7.cond_label);
-        free($<code_info>7.body_label);
-        free($<code_info>7.end_label);
-        free($<code_info>7.incr_label);
+    FOR LPAREN for_header assignment RPAREN for_body {
+        // Now emit the loop logic from here using $3 (header data)
+
+        // Emit increment label
+        add_quadruple(OP_LABEL, NULL, NULL, $3.incr_label);
+
+        // Jump back to condition
+        add_quadruple(OP_GOTO, NULL, NULL, $3.cond_label);
+
+        // End label
+        add_quadruple(OP_LABEL, NULL, NULL, $3.end_label);
+
+        // Clean up
+        free($3.cond_label);
+        free($3.body_label);
+        free($3.end_label);
+        free($3.incr_label);
     }
-    | FOR error {
+    | FOR error for_header assignment RPAREN for_body {
         report_error(SYNTAX_ERROR, "Expected '(' in for loop", prev_valid_line);
         yyerrok;
     }
-    | FOR LPAREN for_stmt_declaration error {
-        report_error(SYNTAX_ERROR, "Expected ';' in for loop", prev_valid_line);
-        yyerrok;
-    }
-    | FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment error {
+    | FOR LPAREN for_header assignment error {
         report_error(SYNTAX_ERROR, "Expected ')' in for loop", prev_valid_line);
         yyerrok;
     }
-    | FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN error {
-        report_error(SYNTAX_ERROR, "Malformed for statement", prev_valid_line);
+
+
+;
+
+for_header:
+    for_stmt_declaration SEMI expression SEMI
+    {
+        char *cond_label = new_label();
+        char *body_label = new_label();
+        char *end_label  = new_label();
+
+        add_quadruple(OP_LABEL, NULL, NULL, cond_label);
+
+        if ($3.temp_var) {
+            add_quadruple(OP_IFGOTO, $3.temp_var, NULL, body_label);
+        } else {
+            char buffer[50];
+            sprintf(buffer, "%d", $3.value.iVal); // adjust based on type
+            add_quadruple(OP_IFGOTO, buffer, NULL, body_label);
+        }
+
+        add_quadruple(OP_GOTO, NULL, NULL, end_label);
+        add_quadruple(OP_LABEL, NULL, NULL, body_label);
+
+        // Pass info to for_body
+        $$.cond_label = cond_label;
+        $$.body_label = body_label;
+        $$.end_label = end_label;
+    }
+    | for_stmt_declaration error expression SEMI {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | for_stmt_declaration SEMI expression error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
     ;
+
+for_body:
+    LBRACE { enterScope(); } statement_list RBRACE { exitScope(); }
+;
+
+
 
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
@@ -1730,7 +1721,7 @@ int main() {
     if (input) {
         yyin = input;
         yylineno = 1;
-        int result = yyparse();
+        yyparse();
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
 
