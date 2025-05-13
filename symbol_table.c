@@ -263,6 +263,7 @@ void handlePrefixInc(char *identifier) {
     // Update symbol value in the symbol table
     updateSymbolValue(identifier, entry->value);
 }
+
 void addParamsToSymbolTable(const Parameter* head) {
     const Parameter* param = head;
     while (param) {
