@@ -60,7 +60,7 @@ void initSymbolTable();
 void enterScope();
 void exitScope();
 
-void *addSymbol(char *name, char *type, Value value , bool isConst , bool isFunction, Parameter *params, char *returnType); // add intialize here
+void *addSymbol(char *name, char *type, bool isIntialized , Value value , bool isConst , bool isFunction, Parameter *params, char *returnType); // add intialize here
 SymbolTableEntry *lookupSymbol(char *name);
 
 int updateSymbolValue(char *name, Value newValue);

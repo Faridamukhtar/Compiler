@@ -18,4 +18,4 @@ clean:
 	rm -f compiler lex.yy.c parser.tab.c parser.tab.h *.o
 
 run:
-	./compiler < input.txt
+	./compiler < test/input.txt
