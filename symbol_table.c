@@ -275,28 +275,15 @@ void checkUnclosedScopes(int yylineno)
     }
 }
 
-// void reportUnusedVariables() {
-//     for (int i = 0; i < scopeCount; i++) {
-//         Scope *scope = allScopes[i];
-//         SymbolTableEntry *symbol = scope->symbols;
-//         while (symbol != NULL) {
-//             if (!symbol->isUsed && !symbol->isFunction) {
-//                 printf("Warning: Variable '%s' declared in scope %d but never used.\n", symbol->identifierName, i);
-//             }
-//             symbol = symbol->next;
-//         }
-//     }
-// }
-
-// void reportUninitializedVariables() {
-//     for (int i = 0; i < scopeCount; i++) {
-//         Scope *scope = allScopes[i];
-//         SymbolTableEntry *symbol = scope->symbols;
-//         while (symbol != NULL) {
-//             if (symbol->isUsed && !symbol->isInitialized && !symbol->isFunction) {
-//                 printf("Warning: Variable '%s' used in scope %d but never initialized.\n", symbol->identifierName, i);
-//             }
-//             symbol = symbol->next;
-//         }
-//     }
-// }
+void reportUnusedVariables() {
+    for (int i = 0; i < scopeCount; i++) {
+        Scope *scope = allScopes[i];
+        SymbolTableEntry *symbol = scope->symbols;
+        while (symbol != NULL) {
+            if (!symbol->isUsed && !symbol->isFunction) {
+                printf("Warning: Variable '%s' declared in scope %d but never used.\n", symbol->identifierName, i);
+            }
+            symbol = symbol->next;
+        }
+    }
+}

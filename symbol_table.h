@@ -79,5 +79,6 @@ void handlePrefixInc(char *identifier);
 // void reportUninitializedVariables();
 
 void checkUnclosedScopes(int yylineno);
+void reportUnusedVariables();
 
 #endif
