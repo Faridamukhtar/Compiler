@@ -1,12 +1,12 @@
 CC=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -Wno-unused-function
 
 all: 
 	clear
 	make compiler
 
 compiler: lex.yy.c parser.tab.c symbol_table.c
-	$(CC) $(CFLAGS) -o compiler lex.yy.c parser.tab.c symbol_table.c paramater.c helpers.c src/error_handler.c -Iinclude
+	$(CC) $(CFLAGS) -o compiler lex.yy.c parser.tab.c symbol_table.c paramater.c helpers.c src/error_handler.c src/quadruple.c src/quad_to_asm.c -Iinclude
 
 parser.tab.c parser.tab.h: parser.y
 	bison -d parser.y

@@ -25,9 +25,9 @@ typedef union {
 } Value;
 
 typedef struct expression {
-    ValueType type; //int
+    int type;
     Value value;
-
+    char *temp_var;
 } expr;
 
 typedef struct SymbolTable {
@@ -54,6 +54,10 @@ void initSymbolTable();
 void enterScope();
 void exitScope();
 
+// Tracking Scopes
+void removeScope();
+void addScope();
+
 void *addSymbol(char *name, char *type, bool isIntialized , Value value , bool isConst , bool isFunction, Parameter *params); // add intialize here
 SymbolTableEntry *lookupSymbol(char *name);
 
@@ -72,6 +76,10 @@ void handlePostfixDec(char *identifier);
 void handlePrefixInc(char *identifier);
 void addParamsToSymbolTable(const Parameter* head);
 
+// void reportUnusedVariables();
+// void reportUninitializedVariables();
+
+void checkUnclosedScopes(int yylineno);
 void reportUnusedVariables();
 
 #endif
