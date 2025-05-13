@@ -9,10 +9,9 @@ Mimo
 
 MIRA
 | Requirement                                                                   | Status            | Coverage Notes                                                                               |
-| ----------------------------------------------------------------------------- | ----------------  | -------------------------------------------------------------------------------------------- |
-| 6. [Optional] Type mismatch in return statements**                            | ❌ Not Done       | You allow `RETURN expression`, but don’t check its type against the function’s return type.  |                             |
-| 8. [Optional] Warn for declared-but-unused variables**                        | ⚠️ Commented Out  | You have a function `reportUnusedVariables()` but it's not invoked in `main()`.              |
-| 9. [Optional] GUI**                                                           | ❌ Not Done       | Not expected unless you explicitly want to implement it.                                     |
+| ----------------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| 6. [Optional] Type mismatch in return statements                              | ❌ Not Done       | You allow `RETURN expression`, but don’t check its type against the function’s return type.  |
+| 9. [Optional] GUI                                                             | ❌ Not Done       | Not expected unless you explicitly want to implement it.                                     |
 
 
 COMMON BETWEEN MIRA W MIMO
