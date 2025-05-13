@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "lex.yy.h"  
+#include "error_handler.h"
 
 extern int yylex();
 extern int yyparse();
+extern int prev_valid_line;
 
 void yyerror(const char *s);
 %}
@@ -58,6 +60,14 @@ statement:
     | CONTINUE SEMI
     | BREAK SEMI
     | LBRACE statement_list RBRACE
+    | declaration error {
+        report_error(SYNTAX_ERROR, "Expected ';' after declaration", prev_valid_line);
+        yyerrok;
+    }
+    | assignment error {
+        report_error(SYNTAX_ERROR, "Expected ';' after assignment", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 declaration:
@@ -80,6 +90,10 @@ assignment:
 
 if_stmt:
     IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_part
+    | IF LPAREN expression error {
+        report_error(SYNTAX_ERROR, "Missing ')' after if condition", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 else_part:
@@ -90,10 +104,18 @@ else_part:
 
 while_stmt:
     WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+    | WHILE LPAREN expression error {
+        report_error(SYNTAX_ERROR, "Missing ')' in while condition", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 for_stmt:
     FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    | FOR LPAREN error {
+        report_error(SYNTAX_ERROR, "Malformed for loop header", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 for_stmt_declaration:
@@ -115,6 +137,11 @@ switch_stmt:
 
 case_list:
     case_list CASE CONSTANT_VAL COLON statement_list
+    | case_list CASE error {
+        report_error(SYNTAX_ERROR, "Invalid constant in switch case", prev_valid_line);
+        yyerrok;
+    }
+
     | /* empty */
     ;
 
@@ -126,6 +153,10 @@ default_case:
 return_stmt:
     RETURN expression
     | RETURN
+    | RETURN error {
+        report_error(SYNTAX_ERROR, "Invalid return expression or missing ';'", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 expression:
@@ -197,6 +228,10 @@ repeat_stmt:
 
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
+    | FUNCTION error {
+        report_error(SYNTAX_ERROR, "Malformed function declaration", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 function_call:
@@ -230,7 +265,6 @@ const_decl:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Parse error: %s\n", s);
 }
 
 int main() {
@@ -238,13 +272,19 @@ int main() {
     FILE *input = fopen("test/input.txt", "r");
     if (input) {
         yyin = input;
+        yylineno = 1;
         int result = yyparse();
-        if (result == 0) {
-            printf("Parsing successful!\n");
-        } else {
-            printf("Parsing failed!\n");
-        }
         fclose(input);
+        printf("\n=== Parsing Finished ===\n");
+        print_all_errors();  
+
+        if (get_error_count() > 0) {
+            printf("Parsing failed with errors.\n");
+            return 1;
+        } else {
+            printf("Parsing successful!\n");
+            return 0;
+        }
     } else {
         printf("Failed to open input file.\n");
     }
