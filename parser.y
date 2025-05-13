@@ -61,11 +61,31 @@ statement:
     | BREAK SEMI
     | LBRACE statement_list RBRACE
     | declaration error {
-        report_error(SYNTAX_ERROR, "Expected ';' after declaration", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
     | assignment error {
-        report_error(SYNTAX_ERROR, "Expected ';' after assignment", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | return_stmt error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | const_decl error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | function_call error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | CONTINUE error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | BREAK error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
     ;
@@ -90,10 +110,19 @@ assignment:
 
 if_stmt:
     IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_part
+    | IF error {
+        report_error(SYNTAX_ERROR, "Missing '(' before if condition", prev_valid_line);
+        yyerrok;
+    }
     | IF LPAREN expression error {
         report_error(SYNTAX_ERROR, "Missing ')' after if condition", prev_valid_line);
         yyerrok;
     }
+    | IF LPAREN expression RPAREN error {
+        report_error(SYNTAX_ERROR, "Malformed if condition", prev_valid_line);
+        yyerrok;
+    }
+
     ;
 
 else_part:
@@ -153,10 +182,6 @@ default_case:
 return_stmt:
     RETURN expression
     | RETURN
-    | RETURN error {
-        report_error(SYNTAX_ERROR, "Invalid return expression or missing ';'", prev_valid_line);
-        yyerrok;
-    }
     ;
 
 expression:

@@ -3,6 +3,7 @@ function int add(int a, int b) {
 }
 function int foo(int a, float b) {
     if (a > 10) {
+        return a * b;
         if (b < 5.5) {
             return a + b;
         } else {
