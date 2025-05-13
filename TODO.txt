@@ -1,16 +1,12 @@
-TODO 3ND EL SYMBOL TABLE 
-
-MIRA                                    
+MIRA/FOFAA                                 
 1. fix unused
 2. constant
 3. functions
 
-
 Monmon and Fofa
-1. Make sure that all the syntax errors are handled properly and the error messages are clear and informative.
-2. N3ml al semantic errors b3d ama al semantic analyzer yb2a fifnito
-3. quadrabule code generation 
+1. Nezabat kol el syntax errors el fadlaaa
+2. 7agat el darba fel quads
+3. quadruple generation
 
-
-int x=5;
-x = x + 3.14; 
+MIMO:
+handle for loop (symbol table)
