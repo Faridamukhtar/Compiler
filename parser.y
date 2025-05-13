@@ -500,6 +500,8 @@ while_stmt:
         // Emit end label
         add_quadruple(OP_LABEL, NULL, NULL, $2.end_label);
 
+        pop_loop_labels();
+
         // Free dynamically allocated labels
         free($2.cond_label);
         free($2.body_label);
@@ -527,6 +529,8 @@ while_header:
         $$.cond_label  = cond_label;
         $$.body_label  = body_label;
         $$.end_label  = end_label;
+
+        push_loop_labels(end_label, cond_label);
     }
     ;
 
@@ -539,6 +543,8 @@ for_stmt:
 
         // End label
         add_quadruple(OP_LABEL, NULL, NULL, $3.end_label);
+
+        pop_loop_labels();
 
         // Clean up
         free($3.cond_label);
@@ -581,6 +587,8 @@ for_header:
         $$.cond_label = cond_label;
         $$.body_label = body_label;
         $$.end_label = end_label;
+
+        push_loop_labels(end_label, cond_label);
     }
     | for_stmt_declaration error expression SEMI {
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
@@ -698,6 +706,7 @@ CONSTANT_VAL:
 switch_stmt:
     SWITCH LPAREN IDENTIFIER RPAREN {
         current_switch_end_label = new_label();
+        push_loop_labels(current_switch_end_label, NULL);
         $<code_info>$ = (typeof($<code_info>$)){
             .code = strdup($3),     // variable to match
             .end_label = current_switch_end_label,
@@ -707,6 +716,7 @@ switch_stmt:
         };
     } LBRACE { enterScope(); } case_list default_case RBRACE {
         exitScope();
+        pop_loop_labels();
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.end_label);
         free($<code_info>5.end_label);
         free($<code_info>5.code);
@@ -1586,49 +1596,45 @@ primary_expr:
     }
     ;
 
-repeat_stmt: REPEAT LBRACE {
-    enterScope();
-    /* Generate start label for repeat loop */
-    char *start_label = new_label();
-    add_quadruple(OP_LABEL, NULL, NULL, start_label);
-    $<code_info>$.code = start_label;
-} statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI {
-    exitScope();
-    /* Generate condition code */
-    char *end_label = new_label();
-    
-    /* If expression has a temp variable */
-    if ($8.temp_var) {
-        add_quadruple(OP_IFGOTO, $8.temp_var, NULL, end_label);
-    } else {
-        /* Create a comparison with true */
-        char *expr_result = malloc(50);
-        switch ($8.type) {
-            case INT_TYPE:
-                sprintf(expr_result, "%d", $8.value.iVal);
-                break;
-            case FLOAT_TYPE:
-                sprintf(expr_result, "%f", $8.value.fVal);
-                break;
-            case BOOL_TYPE:
-                sprintf(expr_result, "%s", $8.value.bVal ? "true" : "false");
-                break;
-            default:
-                strcpy(expr_result, "unknown");
+repeat_stmt:
+    REPEAT LBRACE {
+        enterScope();
+        char *start_label = new_label();  // continue target
+        char *end_label = new_label();    // break target
+
+        add_quadruple(OP_LABEL, NULL, NULL, start_label);
+        push_loop_labels(end_label, start_label);  // 👈 push loop labels
+
+        $<code_info>$.code = start_label;
+        $<code_info>$.end_label = end_label;       // optional: pass it for consistency
+    } statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI {
+        exitScope();
+        pop_loop_labels();  // 👈 pop after scope closes
+
+        // If expression has a temp variable
+        if ($8.temp_var) {
+            add_quadruple(OP_IFGOTO, $8.temp_var, NULL, $<code_info>3.end_label);
+        } else {
+            char *expr_result = malloc(50);
+            switch ($8.type) {
+                case INT_TYPE:   sprintf(expr_result, "%d", $8.value.iVal); break;
+                case FLOAT_TYPE: sprintf(expr_result, "%f", $8.value.fVal); break;
+                case BOOL_TYPE:  sprintf(expr_result, "%s", $8.value.bVal ? "true" : "false"); break;
+                default:         strcpy(expr_result, "unknown");
+            }
+            add_quadruple(OP_IFGOTO, expr_result, NULL, $<code_info>3.end_label);
+            free(expr_result);
         }
-        add_quadruple(OP_IFGOTO, expr_result, NULL, end_label);
-        free(expr_result);
+
+        // Jump back to start of loop
+        add_quadruple(OP_GOTO, NULL, NULL, $<code_info>3.code);
+        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>3.end_label);
+
+        // Clean up
+        free($<code_info>3.code);
+        free($<code_info>3.end_label);
     }
-    
-    /* Jump back to start of loop */
-    add_quadruple(OP_GOTO, NULL, NULL, $<code_info>3.code);
-    add_quadruple(OP_LABEL, NULL, NULL, end_label);
-    
-    /* Clean up */
-    free($<code_info>3.code);
-    free(end_label);
-    }
-    ;
+;
 
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {

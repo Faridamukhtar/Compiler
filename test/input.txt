@@ -1,20 +1,19 @@
-int x = 5;
+const int x = 5;
 int y = 5;
 y++;    
 ++y;
 int z =0;
 z--;
 --z;
+bool t = false;
 bool c = true;
-float t=3.14;
 string m ="mimo";
 m="zozi";
 
 if (x==y) {
     int x=0;
-    int m,f,s;
+    int m,s;
 }
-
 else {
     int y = 0;
     if (x!=y){
@@ -41,8 +40,6 @@ repeat {
     int y =6;
 }
 until (x!=y);
-
-x = 3.14;
 
 
 switch (x) {
