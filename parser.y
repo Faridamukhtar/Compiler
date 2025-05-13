@@ -130,6 +130,7 @@ declaration:
             Value myvalue;
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
+report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
                     fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, result[i]);
                 } else {
                     addSymbol(result[i], $1, false, myvalue, false, false, NULL);
@@ -168,32 +169,56 @@ identifier_list:
 
 assignment:
     IDENTIFIER INC {
-        if (!lookupSymbol($1)) {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
         handlePrefixInc($1);
     }
+    }
     | IDENTIFIER DEC {
-        if (!lookupSymbol($1)) {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
         handlePostfixDec($1);
     }
+    }
     | INC IDENTIFIER {
-        if (!lookupSymbol($2)) {
+        SymbolTableEntry *entry = lookupSymbol($2);
+        if (!entry) {
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
         }
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
+            }
         handlePrefixInc($2);
     }
+    }
     | DEC IDENTIFIER {
-        if (!lookupSymbol($2)) {
+        SymbolTableEntry *entry = lookupSymbol($2);
+        if (!entry) {
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
         }
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
+            }
         handlePostfixDec($2);
+    }
     }
     | IDENTIFIER ASSIGN expression {
         if (!lookupSymbol($1)) {
@@ -483,7 +508,7 @@ primary_expr:
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
-        if (!entry->isInitialized) {
+        if (!entry->isInitialized  && !entry->isFunction) {
             fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
         }
         $$ = (expr){.type = entry->type, .value = entry->value};
