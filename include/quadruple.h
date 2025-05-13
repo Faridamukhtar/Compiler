@@ -51,7 +51,4 @@ void print_quadruples();
 void free_quadruples();
 const char* get_op_string(OpType op);
 
-// Assembly conversion
-void convert_quadruples_to_assembly(const char *filename);
-
 #endif

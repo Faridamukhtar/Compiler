@@ -15,7 +15,7 @@ lex.yy.c: lexer.l parser.tab.h
 	flex --header-file=lex.yy.h -o lex.yy.c Lexer.l
 
 clean:
-	rm -f compiler lex.yy.c parser.tab.c parser.tab.h *.o
+	rm -f compiler lex.yy.c parser.tab.c parser.tab.h *.o *.txt
 
 run:
 	./compiler < test/input.txt
