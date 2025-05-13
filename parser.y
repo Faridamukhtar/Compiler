@@ -197,84 +197,84 @@ expression:
 
 logical_expr:
     logical_expr OR logical_term {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement real OR
+        $$ = $1; // TODO: implement real OR
     }
     | logical_term {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate term
+        $$ = $1; // TODO: propagate term
     }
 ;
 
 logical_term:
     logical_term AND equality_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement real AND
+        $$ = $1; // TODO: implement real AND
     }
     | equality_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate equality
+        $$ = $1; // TODO: propagate equality
     }
 ;
 
 equality_expr:
     equality_expr EQ relational_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ==
+        $$ = $1; // TODO: implement ==
     }
     | equality_expr NEQ relational_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement !=
+        $$ = $1; // TODO: implement !=
     }
     | relational_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate relational
+        $$ = $1; // TODO: propagate relational
     }
 ;
 
 relational_expr:
     relational_expr LT additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement <
+        $$ = $1; // TODO: implement <
     }
     | relational_expr GT additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement >
+        $$ = $1; // TODO: implement >
     }
     | relational_expr LTE additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement <=
+        $$ = $1; // TODO: implement <=
     }
     | relational_expr GTE additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement >=
+        $$ = $1; // TODO: implement >=
     }
     | additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate additive
+        $$ = $1; // TODO: propagate additive
     }
 ;
 
 additive_expr:
     additive_expr PLUS multiplicative_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement +
+        $$ = $1; // TODO: implement +
     }
     | additive_expr MINUS multiplicative_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement -
+        $$ = $1; // TODO: implement -
     }
     | multiplicative_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate multiplicative
+        $$ = $1; // TODO: propagate multiplicative
     }
 ;
 
 multiplicative_expr:
     multiplicative_expr MUL exponent_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement *
+        $$ = $1; // TODO: implement *
     }
     | multiplicative_expr DIV exponent_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement /
+        $$ = $1; // TODO: implement /
     }
     | exponent_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate exponent
+        $$ = $1; // TODO: propagate exponent
         printf("3nd el multiplicative %d \n" , $1.value.iVal);
     }
 ;
 
 exponent_expr:
     exponent_expr EXP unary_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ^
+        $$ = $1; // TODO: implement ^
 
     }
     | unary_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate unary
+        $$ = $1; // TODO: propagate unary
          printf("3nd el exponent %d \n" , $1.value.iVal);
     }
 ;
