@@ -251,45 +251,45 @@ void handlePrefixInc(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
+// void addParamsToSymbolTable(const Parameter* head) {
+//     const Parameter* current = head;
+
+//     while (current != NULL) {
+//         Value defaultValue;
+
+//         addSymbol(
+//             current->name,
+//             current->type,
+//             true,          
+//             defaultValue,   
+//             false,          
+//             false,          
+//             NULL            
+//         );
+
+//         current = current->next;
+//     }
+// }
+
+
 void addParamsToSymbolTable(const Parameter* head) {
-    const Parameter* current = head;
+    const Parameter* param = head;
+    while (param) {
+        if (!param->name || !param->type) {
+            fprintf(stderr, "Error: Invalid parameter with missing name or type\n");
+            return;
+        }
 
-    while (current != NULL) {
-        Value defaultValue;
+        if (isSymbolDeclaredInCurrentScope(param->name)) {
+            fprintf(stderr, "Semantic Error: Parameter '%s' already declared in this scope.\n", param->name);
+        } else {
+            Value val;
+            addSymbol(param->name, param->type, true, val, false, false, NULL);
+        }
 
-        addSymbol(
-            current->name,
-            current->type,
-            false,          
-            defaultValue,   
-            false,          
-            false,          
-            NULL            
-        );
-
-        current = current->next;
+        param = param->next;
     }
 }
-
-void handleFunctionCall(char *fnName, Value *args, int argCount) {
-
-    SymbolTableEntry *fnEntry = lookupSymbol(fnName);
-
-    if (fnEntry == NULL) {
-        fprintf(stderr, "Error: Function '%s' is not declared.\n", fnName);
-        exit(EXIT_FAILURE);
-    }
-
-    if (!fnEntry->isFunction) {
-        fprintf(stderr, "Error: '%s' is not a function.\n", fnName);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Function '%s' found successfully!\n", fnName);
-
-    // (Next step: Check parameters & update the params --> re-enter the scope)
-}
-
 
 
 // void reportUnusedVariables() {

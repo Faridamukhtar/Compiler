@@ -519,12 +519,14 @@ repeat_stmt:
     ;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();
-        addParamsToSymbolTable($5);
-    } statement_list RBRACE {
-        exitScope();
+function_decl:
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN {
         Value myValue;
-        addSymbol($3, $2, true, myValue, false, true, $5);
+        addSymbol($3, $2, true, myValue, false, true, $5); 
+        enterScope();
+        addParamsToSymbolTable($5);
+    } LBRACE statement_list RBRACE {
+        exitScope();
     }
     /* | FUNCTION error {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
@@ -559,7 +561,7 @@ argument_list:
     ;
 
 params:
-    /* empty */
+    /* empty */ { $$ = NULL; }
     | param_list { $$ = $1; }
     ;
 
