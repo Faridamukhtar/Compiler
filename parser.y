@@ -23,6 +23,10 @@ void yyerror(const char *s);
     #include "parameter.h"
 }
 
+/* Enable location tracking */
+%define api.location.type {struct YYLTYPE { int first_line; int first_column; int last_line; int last_column; }}
+%locations
+
 %union {
     int i;
     char c;
@@ -126,7 +130,11 @@ declaration:
         if (result) {
             Value myvalue;
             for (int i = 0; i < count; i++) {
-                addSymbol(result[i], $1, false, myvalue, false, false, NULL);
+                if (isSymbolDeclaredInCurrentScope(result[i])) {
+                    fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, result[i]);
+                } else {
+                    addSymbol(result[i], $1, false, myvalue, false, false, NULL);
+                }
             }
             free_split_result(result, count);
         } else {
@@ -134,7 +142,11 @@ declaration:
         }
     }
     | TYPE IDENTIFIER ASSIGN expression {
+    if (isSymbolDeclaredInCurrentScope($2)) {
+        fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, $2);
+    } else {
         addSymbol($2, $1, true , $4.value, false, false, NULL);
+    }
     }
     | TYPE error {
         report_error(SYNTAX_ERROR, "Expected identifier after type", prev_valid_line);
@@ -144,6 +156,7 @@ declaration:
         report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
         yyerrok;
     }
+    
     ;
 
 
@@ -169,7 +182,7 @@ assignment:
     | DEC IDENTIFIER {
         handlePostfixDec($2);
     }
-    | IDENTIFIER ASSIGN expression
+    | IDENTIFIER ASSIGN expression 
     {
         updateSymbolValue($1, $3.value);
     }
@@ -414,7 +427,7 @@ unary_expr:
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
     }
     | primary_expr { $$ = $1; }
-;
+    ;
 
 primary_expr:
     INT {
@@ -507,7 +520,7 @@ function_decl:
         yyerrok;
     } */
 
-function_call: 
+function_call:
     IDENTIFIER LPAREN argument_list RPAREN
     | IDENTIFIER LPAREN RPAREN
     /* | IDENTIFIER error {
@@ -520,7 +533,7 @@ function_call:
     }
     ;
 
-argument_list: 
+argument_list:
     argument_list COMMA expression
     | expression
     ;
@@ -547,7 +560,7 @@ param:
     }
     ;
 
-const_decl: 
+const_decl:
     CONST TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $5.value;
         addSymbol($3, $2, true, myValue, true, false, NULL);
@@ -557,7 +570,7 @@ const_decl:
 %%
 
 void yyerror(const char *s) {
-    
+    fprintf(stderr, "Parse error at line %d: %s\n", yylloc.first_line, s);
 }
 
 int main() {
@@ -587,6 +600,8 @@ int main() {
         } else {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
+        // reportUnusedVariables();
+        // reportUninitializedVariables();
         fclose(input);
         clearSymbolTables(currentScope);
     } else {
