@@ -1,25 +1,10 @@
 TODO 3ND EL SYMBOL TABLE 
 
-Mimo
-1. Fns (params + 3yza a intialize el haga fy el fn call)
-    1.1 params should be parsed inside (DONE)
-    1.2 check leh lw fn msh b pass haga hy3mal error (DONE)
-    1.3 look up fns (DONE)
-2. char (DONE)
-3. string el "" (DONE)
-4. blocks (DONE)
-5. Identifer list cropped (DONE)
-6. Remove Value from symbol tableeeee (LAMA KOLO Y5LS 34AN MSH HA3OD A7AL CONFLICTS KOL DAH)
+MIRA                                    
+1. fix unused
+2. constant
+3. functions
 
-MIRA
-| Requirement                                                                   | Status            | Coverage Notes                                                                               |
-| ----------------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------- |
-| 6. [Optional] Type mismatch in return statements                              | ❌ Not Done       | You allow `RETURN expression`, but don’t check its type against the function’s return type.  |
-| 9. [Optional] GUI                                                             | ❌ Not Done       | Not expected unless you explicitly want to implement it.                                     |
-
-
-COMMON BETWEEN MIRA W MIMO
-1. check el lookups (seg fault n4of lw hya el azma)
 
 Monmon and Fofa
 1. Make sure that all the syntax errors are handled properly and the error messages are clear and informative.
