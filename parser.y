@@ -150,13 +150,13 @@ statement:
     | const_decl SEMI
     | function_call SEMI
     | CONTINUE SEMI {
-        add_quadruple(OP_GOTO, get_continue_label(), NULL, NULL);
+        add_quadruple(OP_GOTO, NULL, NULL, get_continue_label());
     }
         /* Generate code for continue - usually jumps to loop condition */
         /* This would need to keep track of current loop's continue label */
 
     | BREAK SEMI {
-        add_quadruple(OP_GOTO, get_break_label(), NULL, NULL);
+        add_quadruple(OP_GOTO, NULL, NULL, get_break_label());
     }
         /* Generate code for break - usually jumps to end of loop */
         /* This would need to keep track of current loop's exit label */
@@ -550,6 +550,7 @@ for_stmt:
         free($3.cond_label);
         free($3.body_label);
         free($3.end_label);
+        exitScope(); 
     }
     | FOR error for_header assignment RPAREN for_body {
         report_error(SYNTAX_ERROR, "Expected '(' in for loop", prev_valid_line);
@@ -601,11 +602,12 @@ for_header:
     ;
 
 for_body:
-    LBRACE { enterScope(); } statement_list RBRACE { exitScope(); }
+    LBRACE statement_list RBRACE {}
 ;
 
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
+        enterScope();
         Value myValue = $4.value;
         addSymbol($2, $1, true, myValue, false, false, NULL);
         char *expr_result;
@@ -639,6 +641,7 @@ for_stmt_declaration:
         }
     }
     | TYPE IDENTIFIER {
+        enterScope();
         Value myValue;
         myValue.iVal = 0; // Initialize to default
         addSymbol($2, $1, false, myValue, false, false, NULL);
@@ -646,6 +649,7 @@ for_stmt_declaration:
     | IDENTIFIER ASSIGN expression {
         Value myValue = $3.value;
         updateSymbolValue($1, myValue);
+        enterScope();
         char *expr_result;
         if ($3.temp_var) {
             expr_result = $3.temp_var;
@@ -1645,7 +1649,7 @@ function_decl:
         currentFunctionReturnType = mapStringToValueType($2);
         enterScope();
         addParamsToSymbolTable($5);
-        add_quadruple(OP_LABEL, $3, NULL, NULL);
+        add_quadruple(OP_LABEL, NULL, NULL, $3);
     } statement_list RBRACE {
         /* Generate implicit return if none exists */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
