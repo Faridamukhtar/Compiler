@@ -95,7 +95,7 @@ declaration:
             // printf("text %s", $2);
             Value myvalue;
             for (int i = 0; i < count; i++) {
-                addSymbol(result[i], $1, myvalue, false, false, NULL, NULL);
+                addSymbol(result[i], $1, false, myvalue, false, false, NULL, NULL);
             }
             free_split_result(result, count);
         } else {
@@ -103,7 +103,7 @@ declaration:
         }
     }
     | TYPE IDENTIFIER ASSIGN expression {
-        addSymbol($2, $1, $4.value, false, false, NULL, NULL);
+        addSymbol($2, $1, true , $4.value, false, false, NULL, NULL);
     }
     ;
 
@@ -153,12 +153,12 @@ for_stmt:
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $4.value;
-        addSymbol($2, $1, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, true, myValue, true, false, NULL, NULL);
     }
     | TYPE IDENTIFIER {
         //8lt aslan ka rule (fofa)
         Value myValue;
-        addSymbol($2, $1, myValue, false, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, false, false, NULL, NULL);
     }
     | IDENTIFIER ASSIGN expression {//play here -> update
         updateSymbolValue($1, $3.value);
@@ -264,15 +264,18 @@ multiplicative_expr:
     }
     | exponent_expr {
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate exponent
+        printf("3nd el multiplicative %d \n" , $1.value.iVal);
     }
 ;
 
 exponent_expr:
     exponent_expr EXP unary_expr {
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ^
+
     }
     | unary_expr {
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate unary
+         printf("3nd el exponent %d \n" , $1.value.iVal);
     }
 ;
 
@@ -283,12 +286,12 @@ unary_expr:
     | NOT unary_expr {
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement !expr
     }
-    | primary_expr { $$ = $1; }
+    | primary_expr { $$ = $1;  printf("3nd el unary %d" , $1.value.iVal);}
     ;
 
 primary_expr:
     INT {
-        // printf("int %d\n", $1);
+        printf("int %d\n", $1);
         Value val;
         val.iVal = $1;
         $$ = (expr){.type = INT_TYPE, .value = val};
@@ -369,14 +372,15 @@ param_list:
 param: //play here
     TYPE IDENTIFIER {
         Value myValue;
-        addSymbol($2, $1, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, true, false, NULL, NULL);
     }
     ;
 
 const_decl: 
     CONST TYPE IDENTIFIER ASSIGN expression { //values btwsal hena 8lt check + string and char fyhom azma
         Value myValue = $5.value;
-        addSymbol($3, $2, myValue, true, false, NULL, NULL);
+        printf("int value %d" , $5.value.iVal);
+        addSymbol($3, $2, true, myValue, true, false, NULL, NULL);
     }
     ;
 
