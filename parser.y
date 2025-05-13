@@ -16,15 +16,16 @@ extern int prev_valid_line;
 void yyerror(const char *s);
 %}
 
+
+/* Enable location tracking */
+%define api.location.type {struct YYLTYPE { int first_line; int first_column; int last_line; int last_column; }}
+%locations
+
 %code requires {
     #include "symbol_table.h"
     #include "helpers.h"
     #include "parameter.h"
 }
-
-/* Enable location tracking */
-%define api.location.type {struct YYLTYPE { int first_line; int first_column; int last_line; int last_column; }}
-%locations
 
 %union {
     int i;
@@ -146,6 +147,11 @@ declaration:
             report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, $2);
         } else {
+            ValueType declaredType = mapStringToValueType($1);
+            if (!areTypesCompatible(declaredType, $4.type)) {
+                report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $2);
+            }
             addSymbol($2, $1, true , $4.value, false, false, NULL);
         }
     }
