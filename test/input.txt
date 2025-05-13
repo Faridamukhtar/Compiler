@@ -1,41 +1,58 @@
-const int x = 5;
-int y =5 ;
-y++;    
-++y;
-int z =0;
-z--;
---z;
-bool t = false;
-bool c = true;
-float t=3.14;
-string m ="mimo";
-m="zozi";
-
-if (x==y) {
-    int x=0;
-    int m,x,s;
+// 1. ✅ Correct function declaration and return
+function int sum(int a, int b) {
+    return "hey";
 }
 
-function int add(int a, int b) {
-    return a + b;
+// 2. ❌ Return type mismatch (string returned from int function)
+function int badReturn() {
+    return "wrong";
 }
 
-{
-    int x=0;
-    int m,x,s; 
+// 3. ❌ Missing return in non-void function
+function float noReturn() {
 }
 
-/*
-function void main() {
-    int num;
-    print("Enter a number: ");
-    if (num < 0){
-        print("Negative numbers are not allowed.");
-    }
-    else
-    {
-        print("Factorial of ", num, " is ", factorial(num));
-        print("Multiplication table for ", num, ":");
-        print_table(num);
-    }
-}*/
+// 4. ✅ Void function with correct return
+function void okay() {
+    return;
+}
+
+// 5. ❌ Return value from void function
+function void oops() {
+    return 10;
+}
+
+// 6. ✅ Valid function call with correct args
+int result = sum(3, 4);
+
+// 7. ❌ Wrong return value assignment (string variable = int-returning function)
+string s = sum(1, 2);
+
+// 8. ❌ Function call with incorrect number of arguments
+int r2 = sum(1);
+
+// 9. ❌ Function call with incorrect types
+int r3 = sum("one", 2);
+
+// 10. ✅ Correct variable declaration and use
+float x = 1.5;
+x = x + 2.5;
+
+// 11. ❌ Use of undeclared variable
+y = 10;
+
+// 12. ❌ Redeclaration in same scope
+int x;
+
+// 13. ❌ Assign incompatible type
+bool flag = "true";
+
+// 14. ❌ Use of uninitialized variable
+int z;
+int w = z;
+
+const q = 100;
+
+int p;
+
+int m4 = sum('a','b');

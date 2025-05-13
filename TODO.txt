@@ -1,13 +1,11 @@
 TODO 3ND EL SYMBOL TABLE 
 
-MIRA                                    
-1. when I write const q = 100; this should give me an error because of missing type 
-2. all declared but unused variables should be reported correctly 
+MIRA  
+1. is string copy pointer or copy mem ?                                  
 3. Function checks 
 a. return expression of a function matches its return type (for void, no expression should come after return)
 b. variables used inside the function match their assignment types as the parameters passed 
-c. when calling a function, the variable it is assigned to should be the same as its return type 
-d. correct number and types of parameters when calling a function
+c. correct number and types of parameters when calling a function
 
 Monmon and Fofa
 1. Make sure that all the syntax errors are handled properly and the error messages are clear and informative.

@@ -49,7 +49,7 @@ void yyerror(const char *s);
 %token <s> IDENTIFIER TYPE STRING
 %token UNKNOWN
 
-%type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
+%type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr function_call
 %type <param_list> params param_list param
 %type <s> identifier_list
 
@@ -552,8 +552,8 @@ primary_expr:
     | LPAREN expression RPAREN {
         $$ = $2; 
     }
-    | function_call {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
+    | function_call { 
+        $$ = $1; 
     }
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);
@@ -618,9 +618,25 @@ function_decl:
 function_call:
     IDENTIFIER LPAREN argument_list RPAREN {
         SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry || !entry->isFunction) {
+            report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
+            $$ = (expr){.type = BOOL_TYPE};  // fallback
+        } else {
+            entry->isUsed = true;
+            $$ = (expr){.type = entry->type, .value = (Value){}};
+        }
     }
     | IDENTIFIER LPAREN RPAREN {
         SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry || !entry->isFunction) {
+            report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
+            $$ = (expr){.type = BOOL_TYPE};
+        } else {
+            entry->isUsed = true;
+            $$ = (expr){.type = entry->type, .value = (Value){}};
+        }
     }
     /* | IDENTIFIER error {
         report_error(SYNTAX_ERROR, "Expected '(' in function call", prev_valid_line);
