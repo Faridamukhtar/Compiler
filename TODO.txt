@@ -1,0 +1,6 @@
+TODO 3ND EL SYMBOL TABLE 
+
+1. fix char
+2. el string el qoutations 
+3. Identifer list cropped
+4. integrate hetat el blocks m3 monmon

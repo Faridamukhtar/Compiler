@@ -1,12 +1,18 @@
 #include "symbol_table.h"
 
 Scope *currentScope = NULL;
+Scope *allScopes[1000];     
+int scopeCount = 0;    
+
 
 void initSymbolTable() {
     if (currentScope == NULL) {
         currentScope = (Scope *)malloc(sizeof(Scope));
         currentScope->symbols = NULL;
         currentScope->parent = NULL;
+
+        allScopes[scopeCount] = currentScope;
+        scopeCount++;
     }
 }
 
@@ -15,36 +21,30 @@ void enterScope() {
     newScope->symbols = NULL;
     newScope->parent = currentScope;
     currentScope = newScope;
+
+    allScopes[scopeCount] = newScope;
+    scopeCount++;
 }
 
 void exitScope() {
-    Scope *temp = currentScope;
-    currentScope = currentScope->parent;
-
-    // Free all symbols in the current scope
-    SymbolTableEntry *symbol = temp->symbols;
-    while (symbol != NULL) {
-        SymbolTableEntry *nextSymbol = symbol->next;
-        free(symbol->identifierName);
-        if (symbol->returnType) {
-            free(symbol->returnType);
-        }
-        free(symbol);
-        symbol = nextSymbol;
-    }
-
-    free(temp);
+    currentScope = currentScope->parent;  
 }
 
-void *addSymbol(char *name, char *type, Value value, bool isConst, bool isFunction, Parameter *params, char *returnType) {
+void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params) {
     if (currentScope == NULL) {
         initSymbolTable();
     }
 
     if (name == NULL || type == NULL) {
-        printf("Error: Invalid parameters passed to addSymbol\n");
+        printf("Error: Invalid parameters missing name\n");
         return NULL;
     }
+
+    if (isSymbolDeclaredInCurrentScope(name)) {
+        printf("Error: Identifier '%s' is already defined in the current scope\n", name);
+        return NULL;
+    }
+
 
     SymbolTableEntry *newEntry = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
     if (newEntry == NULL) {
@@ -54,9 +54,8 @@ void *addSymbol(char *name, char *type, Value value, bool isConst, bool isFuncti
 
     newEntry->identifierName = strdup(name);
     newEntry->type = mapStringToValueType(type);
-    newEntry->returnType = (isFunction && returnType) ? strdup(returnType) : NULL;
     newEntry->isConst = isConst;
-    newEntry->isInitialized = false;
+    newEntry->isInitialized = isIntialized; 
     newEntry->isUsed = false;
     newEntry->isFunction = isFunction;
     newEntry->params = params;
@@ -120,17 +119,15 @@ bool isSymbolDeclaredInCurrentScope(char *name) {
 }
 
 void writeSymbolTableOfAllScopesToFile(FILE *file) {
-    Scope *scope = currentScope;
-    int scopeLevel = 0;
+    for (int i = 0; i < scopeCount; i++) {
+        Scope *scope = allScopes[i];
+        fprintf(file, "=== Scope Level: %d ===\n", i);
 
-    while (scope != NULL) {
-        fprintf(file, "=== Scope Level: %d ===\n", scopeLevel);
         SymbolTableEntry *symbol = scope->symbols;
         while (symbol != NULL) {
-            // Get value as string
             char valueStr[256] = "N/A";
-            symbol->isInitialized=true;
-            if (symbol->isInitialized) {
+
+            if (symbol->isInitialized && symbol->isFunction ==false) {
                 switch (symbol->type) {
                     case INT_TYPE:
                         sprintf(valueStr, "%d", symbol->value.iVal);
@@ -153,22 +150,24 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
             }
 
             fprintf(file,
-                    "Name: %s, Type: %s (%d), Value: %s, ReturnType: %s, Const: %d, Initialized: %d, Used: %d, IsFunction: %d\n",
-                    symbol->identifierName,
-                    valueTypeToString(symbol->type),
-                    symbol->type, // enum value as int
-                    valueStr,
-                    symbol->isFunction && symbol->returnType ? symbol->returnType : "N/A",
-                    symbol->isConst,
-                    symbol->isInitialized,
-                    symbol->isUsed,
-                    symbol->isFunction
+                "Name: %s, Type: %s (%d), Value: %s, Const: %d, Initialized: %d, Used: %d, IsFunction: %d, Params: %s\n",
+                symbol->identifierName,
+                valueTypeToString(symbol->type),
+                symbol->type,
+                valueStr,
+                symbol->isConst,
+                symbol->isInitialized,
+                symbol->isUsed,
+                symbol->isFunction,
+                parameterListToString(symbol->params)
             );
+
+
+
             symbol = symbol->next;
         }
 
-        scope = scope->parent;
-        scopeLevel++;
+        fprintf(file, "\n");
     }
 }
 
@@ -179,9 +178,6 @@ void clearSymbolTables(Scope *scope) {
         SymbolTableEntry *temp = symbol;
         symbol = symbol->next;
         free(temp->identifierName);
-        if (temp->returnType) {
-            free(temp->returnType);
-        }
         free(temp);
     }
     if (scope->parent) {
@@ -196,6 +192,7 @@ ValueType mapStringToValueType(const char *typeStr) {
     if (strcmp(typeStr, "string") == 0) return STRING_TYPE;
     if (strcmp(typeStr, "bool") == 0) return BOOL_TYPE;
     if (strcmp(typeStr, "char") == 0) return CHAR_TYPE;
+    if (strcmp(typeStr, "void") == 0) return VOID_TYPE;
 
     fprintf(stderr, "Unknown type string: '%s'\n", typeStr);
     exit(EXIT_FAILURE);
@@ -208,7 +205,7 @@ const char *valueTypeToString(ValueType type) {
         case STRING_TYPE: return "string";
         case BOOL_TYPE: return "bool";
         case CHAR_TYPE: return "char";
-        default: return "unknown";
+        default: return "void";
     }
 }
 
@@ -233,7 +230,6 @@ void handlePostfixDec(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
-// INC IDENTIFIER (prefix increment)
 void handlePrefixInc(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {

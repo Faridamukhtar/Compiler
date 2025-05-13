@@ -6,17 +6,18 @@
 #include "lex.yy.h"
 #include "symbol_table.h"
 #include "helpers.h"
+#include "parameter.h"
 
 extern int yylex();
 extern int yyparse();
 
 void yyerror(const char *s);
-
 %}
 
 %code requires {
     #include "symbol_table.h"
     #include "helpers.h"
+    #include "parameter.h"
 }
 
 %union {
@@ -25,7 +26,9 @@ void yyerror(const char *s);
     float f;
     char *s;
     expr expr;
+    Parameter *param_list;
 }
+
 /* Define tokens */
 %token IF ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK CONTINUE
 %token AND OR NOT
@@ -39,11 +42,11 @@ void yyerror(const char *s);
 %token <s> IDENTIFIER TYPE STRING
 %token UNKNOWN
 
-
 %type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
+%type <param_list> params param_list param
 %type <s> identifier_list
-/* Define operator precedence */
 
+/* Define operator precedence */
 %left OR
 %left AND
 %left EQ NEQ
@@ -87,15 +90,12 @@ statement:
 
 declaration: 
     TYPE identifier_list  {
-        // int x,y,z; $2 $1   x,y,z 
-        int count =0;
-        char** result = split($2, ",", &count); // remove spaces please
+        int count = 0;
+        char** result = split($2, ",", &count);
         if (result) {
-            // printf("count %d", count);
-            // printf("text %s", $2);
             Value myvalue;
             for (int i = 0; i < count; i++) {
-                addSymbol(result[i], $1, myvalue, false, false, NULL, NULL);
+                addSymbol(result[i], $1, false, myvalue, false, false, NULL);
             }
             free_split_result(result, count);
         } else {
@@ -103,16 +103,16 @@ declaration:
         }
     }
     | TYPE IDENTIFIER ASSIGN expression {
-        addSymbol($2, $1, $4.value, false, false, NULL, NULL);
+        addSymbol($2, $1, true , $4.value, false, false, NULL);
     }
     ;
 
-identifier_list: // capture el zft dah sa7 howa kman
+identifier_list:
     IDENTIFIER
     | identifier_list COMMA IDENTIFIER
     ;
 
-assignment: // completely working expression bs ywsly sa7
+assignment: 
     IDENTIFIER INC {
         handlePrefixInc($1);
     }
@@ -124,7 +124,6 @@ assignment: // completely working expression bs ywsly sa7
     }
     | DEC IDENTIFIER {
         handlePostfixDec($2);
-
     }
     | IDENTIFIER ASSIGN expression
     {
@@ -133,34 +132,33 @@ assignment: // completely working expression bs ywsly sa7
     ;
 
 if_stmt:
-    IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_part
+    IF LPAREN expression RPAREN LBRACE {enterScope();} statement_list RBRACE  {exitScope();} else_part
     ;
 
 else_part:
-    ELSE LBRACE statement_list RBRACE
+    ELSE LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     | ELSE if_stmt
     | /* empty */
     ;
 
 while_stmt:
-    WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+    WHILE LPAREN expression RPAREN LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     ;
 
 for_stmt:
-    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     ;
 
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $4.value;
-        addSymbol($2, $1, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, true, myValue, true, false, NULL);
     }
     | TYPE IDENTIFIER {
-        //8lt aslan ka rule (fofa)
         Value myValue;
-        addSymbol($2, $1, myValue, false, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, false, false, NULL);
     }
-    | IDENTIFIER ASSIGN expression {//play here -> update
+    | IDENTIFIER ASSIGN expression {
         updateSymbolValue($1, $3.value);
     }
     ;
@@ -173,7 +171,7 @@ CONSTANT_VAL:
     ;
 
 switch_stmt:
-    SWITCH LPAREN IDENTIFIER RPAREN LBRACE case_list default_case RBRACE
+    SWITCH LPAREN IDENTIFIER RPAREN LBRACE {enterScope();} case_list default_case RBRACE {exitScope();}
     ;
 
 case_list:
@@ -197,132 +195,125 @@ expression:
 
 logical_expr:
     logical_expr OR logical_term {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement real OR
+        $$ = $1;
     }
     | logical_term {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate term
+        $$ = $1;
     }
 ;
 
 logical_term:
     logical_term AND equality_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement real AND
+        $$ = $1;
     }
     | equality_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate equality
+        $$ = $1;
     }
 ;
 
 equality_expr:
     equality_expr EQ relational_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ==
+        $$ = $1;
     }
     | equality_expr NEQ relational_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement !=
+        $$ = $1;
     }
     | relational_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate relational
+        $$ = $1;
     }
 ;
 
 relational_expr:
     relational_expr LT additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement <
+        $$ = $1;
     }
     | relational_expr GT additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement >
+        $$ = $1;
     }
     | relational_expr LTE additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement <=
+        $$ = $1;
     }
     | relational_expr GTE additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement >=
+        $$ = $1;
     }
     | additive_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate additive
+        $$ = $1;
     }
 ;
 
 additive_expr:
     additive_expr PLUS multiplicative_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement +
+        $$ = $1;
     }
     | additive_expr MINUS multiplicative_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement -
+        $$ = $1;
     }
     | multiplicative_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate multiplicative
+        $$ = $1;
     }
 ;
 
 multiplicative_expr:
     multiplicative_expr MUL exponent_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement *
+        $$ = $1;
     }
     | multiplicative_expr DIV exponent_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement /
+        $$ = $1;
     }
     | exponent_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate exponent
+        $$ = $1;
     }
 ;
 
 exponent_expr:
     exponent_expr EXP unary_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement ^
+        $$ = $1;
     }
     | unary_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: propagate unary
+        $$ = $1;
     }
 ;
 
 unary_expr:
     MINUS unary_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement -expr
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
     }
     | NOT unary_expr {
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true}; // TODO: implement !expr
+        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
     }
     | primary_expr { $$ = $1; }
-    ;
+;
 
 primary_expr:
     INT {
-        // printf("int %d\n", $1);
         Value val;
         val.iVal = $1;
         $$ = (expr){.type = INT_TYPE, .value = val};
     }
     | FLOAT {
-        // printf("float %f\n", $1);
         Value val;
         val.fVal = $1;
         $$ = (expr){.type = FLOAT_TYPE, .value = val};
     }
     | CHAR {
-        // printf("char '%c' (ascii: %d)\n", $1, $1);
         Value val;
         val.cVal = $1;
         $$ = (expr){.type = CHAR_TYPE, .value = val};
     }
     | BOOLEAN {
-        // printf("bool %s\n", $1 ? "true" : "false");
         Value val;
         val.bVal = ($1 != 0);
         $$ = (expr){.type = BOOL_TYPE, .value = val};
     }
     | STRING {
-        // printf("string \"%s\"\n", $1);
         Value val;
-        val.sVal = strdup($1); // Make a copy
+        val.sVal = strdup($1); 
         $$ = (expr){.type = STRING_TYPE, .value = val};
     }
     | LPAREN expression RPAREN {
-        $$ = $2; // Return inner expression directly
+        $$ = $2; 
     }
     | function_call {
-        // You should ideally evaluate the function and return its value
-        // Here, using a placeholder
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
     }
     | IDENTIFIER {
@@ -331,19 +322,20 @@ primary_expr:
             yyerror("Undeclared identifier");
             YYABORT;
         }
-
-        // printf("identifier %s (type: %d)\n", $1, entry->type);
         $$ = (expr){.type = entry->type, .value = entry->value};
     }
 ;
 
-
 repeat_stmt:
-    REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI
+    REPEAT LBRACE {enterScope();} statement_list RBRACE {exitScope();} UNTIL LPAREN expression RPAREN SEMI
     ;
 
-function_decl: //play here
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
+function_decl:
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();} statement_list RBRACE {
+        exitScope();
+        Value myValue;
+        addSymbol($3, $2, true, myValue, false, true, $5);  
+    }
     ;
 
 function_call: 
@@ -358,25 +350,30 @@ argument_list:
 
 params:
     /* empty */
-    | param_list
+    | param_list { $$ = $1; }
     ;
 
 param_list:
-    param_list COMMA param
-    | param
+    param_list COMMA param {
+        $$ = addParameter($1, $3);  // Add the parameter to the list
+    }
+    | param {
+        $$ = $1;
+    }
     ;
 
-param: //play here
+param:
     TYPE IDENTIFIER {
         Value myValue;
-        addSymbol($2, $1, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, true, false, NULL);
+        $$ = createParameter($2, $1);  // Create a new parameter
     }
     ;
 
 const_decl: 
-    CONST TYPE IDENTIFIER ASSIGN expression { //values btwsal hena 8lt check + string and char fyhom azma
+    CONST TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $5.value;
-        addSymbol($3, $2, myValue, true, false, NULL, NULL);
+        addSymbol($3, $2, true, myValue, true, false, NULL);
     }
     ;
 
@@ -406,7 +403,6 @@ int main() {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
         fclose(input);
-        // Clean up symbol table
         clearSymbolTables(currentScope);
     } else {
         printf("Failed to open input file.\n");

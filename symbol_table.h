@@ -5,13 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "parameter.h"
 
 typedef enum {
     INT_TYPE,
     FLOAT_TYPE,
     STRING_TYPE,
     BOOL_TYPE,
-    CHAR_TYPE
+    CHAR_TYPE,
+    VOID_TYPE
 } ValueType;
 
 typedef union {
@@ -22,13 +24,6 @@ typedef union {
     bool bVal;
 } Value;
 
-typedef struct Parameter {
-    char *name;
-    char *type;
-    struct Parameter *next;
-} Parameter;
-
-
 typedef struct expression {
     ValueType type; //int
     Value value;
@@ -38,7 +33,6 @@ typedef struct expression {
 typedef struct SymbolTable {
     char *identifierName; // esm el fn 
     ValueType type; //int
-    char *returnType; // We will only have return type if the type was fn  
     bool isConst; 
     int isInitialized;
     int isUsed;
@@ -60,7 +54,7 @@ void initSymbolTable();
 void enterScope();
 void exitScope();
 
-void *addSymbol(char *name, char *type, Value value , bool isConst , bool isFunction, Parameter *params, char *returnType); // add intialize here
+void *addSymbol(char *name, char *type, bool isIntialized , Value value , bool isConst , bool isFunction, Parameter *params); // add intialize here
 SymbolTableEntry *lookupSymbol(char *name);
 
 int updateSymbolValue(char *name, Value newValue);
