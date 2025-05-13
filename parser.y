@@ -75,6 +75,7 @@ void pop_loop_labels() {
         char *incr_label;
     } code_info;
     char *temp_var;
+    void *void_val;
 }
 
 %token IF ELSE REPEAT UNTIL WHILE FOR SWITCH CASE DEFAULT FUNCTION RETURN CONST BREAK CONTINUE
@@ -93,9 +94,10 @@ void pop_loop_labels() {
 %type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
 %type <param_list> params param_list param
 %type <s> identifier_list
-%type <code_info> if_stmt else_part while_stmt for_stmt switch_stmt repeat_stmt case_list for_header for_body
+%type <code_info> if_stmt else_part while_stmt for_stmt switch_stmt repeat_stmt for_header for_body
 %type <expr> CONSTANT_VAL
 %type <temp_var> function_call
+%type <void_val> statement_list case_list default_case
 
 %left OR
 %left AND
@@ -107,6 +109,8 @@ void pop_loop_labels() {
 %right NOT
 %nonassoc UMINUS
 %right INC DEC
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 
 %%
 
@@ -117,8 +121,8 @@ program:
     ;
 
 statement_list:
-    statement statement_list
-    | /* empty */
+    /* empty */ { $$ = NULL; }
+    | statement_list statement
     ;
 
 statement:
@@ -176,17 +180,17 @@ statement:
     ;
 
 declaration:
-    TYPE identifier_list  {
+    TYPE identifier_list {
         int count = 0;
         char** result = split($2, ",", &count);
         if (result) {
             Value myvalue;
+            myvalue.iVal = 0; // Initialize to default
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
                     fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, result[i]);
                 } else {
                     addSymbol(result[i], $1, false, myvalue, false, false, NULL);
-                    /* No need for quadruple for simple declaration - no initialization */
                 }
             }
             free_split_result(result, count);
@@ -198,32 +202,20 @@ declaration:
         if (isSymbolDeclaredInCurrentScope($2)) {
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, $2);
         } else {
-            addSymbol($2, $1, true, $4.value, false, false, NULL);
-            /* Generate quadruple for initialization */
+            Value myValue = $4.value;
+            addSymbol($2, $1, true, myValue, false, false, NULL);
             char *expr_result;
             if ($4.temp_var) {
-                expr_result = strdup($4.temp_var);
+                expr_result = $4.temp_var;
             } else {
-                /* Convert the value to a string based on its type */
                 expr_result = malloc(50);
                 switch ($4.type) {
-                    case INT_TYPE:
-                        sprintf(expr_result, "%d", $4.value.iVal);
-                        break;
-                    case FLOAT_TYPE:
-                        sprintf(expr_result, "%f", $4.value.fVal);
-                        break;
-                    case BOOL_TYPE:
-                        sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false");
-                        break;
-                    case CHAR_TYPE:
-                        sprintf(expr_result, "'%c'", $4.value.cVal);
-                        break;
-                    case STRING_TYPE:
-                        sprintf(expr_result, "\"%s\"", $4.value.sVal);
-                        break;
-                    default:
-                        strcpy(expr_result, "unknown");
+                    case INT_TYPE: sprintf(expr_result, "%d", $4.value.iVal); break;
+                    case FLOAT_TYPE: sprintf(expr_result, "%f", $4.value.fVal); break;
+                    case BOOL_TYPE: sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false"); break;
+                    case CHAR_TYPE: sprintf(expr_result, "'%c'", $4.value.cVal); break;
+                    case STRING_TYPE: sprintf(expr_result, "\"%s\"", $4.value.sVal); break;
+                    default: strcpy(expr_result, "unknown");
                 }
             }
             add_quadruple(OP_ASSIGN, expr_result, NULL, $2);
@@ -266,7 +258,6 @@ assignment:
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
         } else {
             handlePrefixInc($1);
-            /* Generate quadruple for post-increment */
             add_quadruple(OP_INC, $1, NULL, $1);
         }
     }
@@ -275,7 +266,6 @@ assignment:
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
         } else {
             handlePostfixDec($1);
-            /* Generate quadruple for post-decrement */
             add_quadruple(OP_DEC, $1, NULL, $1);
         }
     }
@@ -284,7 +274,6 @@ assignment:
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
         } else {
             handlePrefixInc($2);
-            /* Generate quadruple for pre-increment */
             add_quadruple(OP_INC, $2, NULL, $2);
         }
     }
@@ -293,7 +282,6 @@ assignment:
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
         } else {
             handlePostfixDec($2);
-            /* Generate quadruple for pre-decrement */
             add_quadruple(OP_DEC, $2, NULL, $2);
         }
     }
@@ -301,13 +289,12 @@ assignment:
         if (!lookupSymbol($1)) {
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
         } else {
-            updateSymbolValue($1, $3.value);
-            /* Generate quadruple for assignment */
+            Value myValue = $3.value;
+            addSymbol($1, $1, true, myValue, false, false, NULL);
             char *expr_result;
             if ($3.temp_var) {
                 expr_result = $3.temp_var;
             } else {
-                /* Convert the value to a string based on its type */
                 expr_result = malloc(50);
                 switch ($3.type) {
                     case INT_TYPE:
@@ -365,7 +352,6 @@ if_stmt:
         add_quadruple(OP_GOTO, NULL, NULL, false_label);
         add_quadruple(OP_LABEL, NULL, NULL, true_label);
 
-        /* Store labels for later use */
         $<code_info>$ = (typeof($<code_info>$)){
             .true_label = true_label,
             .false_label = false_label,
@@ -403,98 +389,72 @@ if_stmt:
 
 else_part:
     ELSE LBRACE {
-        /* Link to the end of if part */
         enterScope();
     } statement_list RBRACE {
         exitScope();
         $$.code = strdup("else_block");
     }
     | ELSE if_stmt {
-        /* Handle else-if - reuse if_stmt code */
         $$.code = $2.code;
-    }
-    | ELSE error {
-        report_error(SYNTAX_ERROR, "Malformed else statement", prev_valid_line);
-        yyerrok;
     }
     | /* empty */ {
         $$.code = NULL;
     }
-    ;
+;
 
-while_stmt:
-    WHILE {
-        /* Generate start label for while loop */
-        char *start_label = new_label();
-        add_quadruple(OP_LABEL, NULL, NULL, start_label);
-        $<code_info>$.code = start_label;
-    } LPAREN expression RPAREN {
-        /* Generate condition code */
-        char *body_label = new_label();
-        char *end_label = new_label();
-        
-        /* If expression has a temp variable */
-        if ($4.temp_var) {
-            add_quadruple(OP_IFGOTO, $4.temp_var, NULL, body_label);
-        } else {
-            /* Create a comparison with true */
-            char *expr_result = malloc(50);
-            switch ($4.type) {
-                case INT_TYPE:
-                    sprintf(expr_result, "%d", $4.value.iVal);
-                    break;
-                case FLOAT_TYPE:
-                    sprintf(expr_result, "%f", $4.value.fVal);
-                    break;
-                case BOOL_TYPE:
-                    sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false");
-                    break;
-                default:
-                    strcpy(expr_result, "unknown");
-            }
-            add_quadruple(OP_IFGOTO, expr_result, NULL, body_label);
-            free(expr_result);
+while_stmt: WHILE {
+    /* Generate start label for while loop */
+    char *start_label = new_label();
+    add_quadruple(OP_LABEL, NULL, NULL, start_label);
+    $<code_info>$.code = start_label;
+} LPAREN expression RPAREN {
+    /* Generate condition code */
+    char *body_label = new_label();
+    char *end_label = new_label();
+    
+    /* If expression has a temp variable */
+    if ($4.temp_var) {
+        add_quadruple(OP_IFGOTO, $4.temp_var, NULL, body_label);
+    } else {
+        /* Create a comparison with true */
+        char *expr_result = malloc(50);
+        switch ($4.type) {
+            case INT_TYPE:
+                sprintf(expr_result, "%d", $4.value.iVal);
+                break;
+            case FLOAT_TYPE:
+                sprintf(expr_result, "%f", $4.value.fVal);
+                break;
+            case BOOL_TYPE:
+                sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false");
+                break;
+            default:
+                strcpy(expr_result, "unknown");
         }
-        
-        add_quadruple(OP_GOTO, NULL, NULL, end_label);
-        add_quadruple(OP_LABEL, NULL, NULL, body_label);
-        
-        /* Store labels for later use */
-        $<code_info>$.true_label = $<code_info>2.code;  /* Start label */
-        $<code_info>$.false_label = end_label;          /* End label */
-    } LBRACE {enterScope();} statement_list RBRACE {
-        exitScope();
-        /* Generate code to jump back to condition */
-        add_quadruple(OP_GOTO, NULL, NULL, $<code_info>6.true_label);
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>6.false_label);
-        
-        /* Clean up */
-        free($<code_info>6.true_label);
-        free($<code_info>6.false_label);
+        add_quadruple(OP_IFGOTO, expr_result, NULL, body_label);
+        free(expr_result);
     }
-    | WHILE error {
-        report_error(SYNTAX_ERROR, "Expected '(' in while condition", prev_valid_line);
-        yyerrok;
-    }
-    | WHILE LPAREN expression error {
-        report_error(SYNTAX_ERROR, "Expected ')' in while condition", prev_valid_line);
-        yyerrok;
-    }
-    | WHILE LPAREN expression RPAREN error {
-        report_error(SYNTAX_ERROR, "Malformed while statement", prev_valid_line);
-        yyerrok;
-    }
-    | WHILE LPAREN error {
-        report_error(SYNTAX_ERROR, "Malformed while loop header", prev_valid_line);
-        yyerrok;
-    }
-    ;
-
+    
+    add_quadruple(OP_GOTO, NULL, NULL, end_label);
+    add_quadruple(OP_LABEL, NULL, NULL, body_label);
+    
+    /* Store labels for later use */
+    $<code_info>$.true_label = $<code_info>2.code;  /* Start label */
+    $<code_info>$.false_label = end_label;          /* End label */
+} LBRACE {enterScope();} statement_list RBRACE {
+    exitScope();
+    /* Generate code to jump back to condition */
+    add_quadruple(OP_GOTO, NULL, NULL, $<code_info>6.true_label);
+    add_quadruple(OP_LABEL, NULL, NULL, $<code_info>6.false_label);
+    
+    /* Clean up */
+    free($<code_info>6.true_label);
+    free($<code_info>6.false_label);
+}
+;
 
 for_stmt:
-    FOR LPAREN for_header assignment RPAREN for_body {
-        // Now emit the loop logic from here using $3 (header data)
-
+    FOR LPAREN for_header SEMI expression SEMI assignment RPAREN for_body {
         // Emit increment label
         add_quadruple(OP_LABEL, NULL, NULL, $3.incr_label);
 
@@ -510,70 +470,53 @@ for_stmt:
         free($3.end_label);
         free($3.incr_label);
     }
-    | FOR error for_header assignment RPAREN for_body {
+    | FOR error {
         report_error(SYNTAX_ERROR, "Expected '(' in for loop", prev_valid_line);
         yyerrok;
     }
-    | FOR LPAREN for_header assignment error {
+    | FOR LPAREN for_header SEMI expression SEMI assignment error {
         report_error(SYNTAX_ERROR, "Expected ')' in for loop", prev_valid_line);
         yyerrok;
     }
-
-
 ;
 
 for_header:
-    for_stmt_declaration SEMI expression SEMI
-    {
+    for_stmt_declaration {
         char *cond_label = new_label();
         char *body_label = new_label();
-        char *end_label  = new_label();
+        char *end_label = new_label();
+        char *incr_label = new_label();
 
         add_quadruple(OP_LABEL, NULL, NULL, cond_label);
 
-        if ($3.temp_var) {
-            add_quadruple(OP_IFGOTO, $3.temp_var, NULL, body_label);
-        } else {
-            char buffer[50];
-            sprintf(buffer, "%d", $3.value.iVal); // adjust based on type
-            add_quadruple(OP_IFGOTO, buffer, NULL, body_label);
-        }
-
-        add_quadruple(OP_GOTO, NULL, NULL, end_label);
-        add_quadruple(OP_LABEL, NULL, NULL, body_label);
-
-        // Pass info to for_body
         $$.cond_label = cond_label;
         $$.body_label = body_label;
         $$.end_label = end_label;
+        $$.incr_label = incr_label;
     }
-    | for_stmt_declaration error expression SEMI {
+    | for_stmt_declaration error {
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
-    | for_stmt_declaration SEMI expression error {
-        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
-        yyerrok;
-    }
-    ;
-
-for_body:
-    LBRACE { enterScope(); } statement_list RBRACE { exitScope(); }
 ;
 
-
+for_body:
+    LBRACE { 
+        enterScope(); 
+        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>0.body_label);
+    } statement_list RBRACE { 
+        exitScope(); 
+    }
+;
 
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $4.value;
-        addSymbol($2, $1, true, myValue, true, false, NULL);
-        
-        /* Generate quadruple for initialization */
+        addSymbol($2, $1, true, myValue, false, false, NULL);
         char *expr_result;
         if ($4.temp_var) {
             expr_result = $4.temp_var;
         } else {
-            /* Convert the value to a string based on its type */
             expr_result = malloc(50);
             switch ($4.type) {
                 case INT_TYPE:
@@ -602,18 +545,16 @@ for_stmt_declaration:
     }
     | TYPE IDENTIFIER {
         Value myValue;
+        myValue.iVal = 0; // Initialize to default
         addSymbol($2, $1, false, myValue, false, false, NULL);
-        /* No initialization, so no quadruple needed */
-    }    
+    }
     | IDENTIFIER ASSIGN expression {
-        updateSymbolValue($1, $3.value);
-        
-        /* Generate quadruple for assignment */
+        Value myValue = $3.value;
+        addSymbol($1, NULL, true, myValue, false, false, NULL);
         char *expr_result;
         if ($3.temp_var) {
             expr_result = $3.temp_var;
         } else {
-            /* Convert the value to a string based on its type */
             expr_result = malloc(50);
             switch ($3.type) {
                 case INT_TYPE:
@@ -652,7 +593,7 @@ for_stmt_declaration:
         report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
         yyerrok;
     }
-    ;
+;
 
 CONSTANT_VAL:
       INT      { Value v; v.iVal = $1; $$ = (expr){.type = INT_TYPE, .value = v, .temp_var = NULL}; }
@@ -670,16 +611,12 @@ CONSTANT_VAL:
 
 switch_stmt:
     SWITCH LPAREN IDENTIFIER RPAREN {
-        /* Generate code for switch - create an end label */
         char *end_label = new_label();
         $<code_info>$.end_label = end_label;
-        $<code_info>$.code = strdup($3);  /* Save the switch variable for case comparisons */
+        $<code_info>$.code = strdup($3);
     } LBRACE {enterScope();} case_list default_case RBRACE {
         exitScope();
-        /* End of switch - place end label */
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.end_label);
-        
-        /* Clean up */
         free($<code_info>5.end_label);
         free($<code_info>5.code);
     }
@@ -695,34 +632,26 @@ switch_stmt:
         report_error(SYNTAX_ERROR, "Malformed switch statement", prev_valid_line);
         yyerrok;
     }
-    ;
-
+;
 
 case_list:
-    case_list CASE CONSTANT_VAL COLON {
+    /* empty */ { $$ = NULL; }
+    | case_list case_item
+;
+
+case_item:
+    CASE CONSTANT_VAL COLON {
         char *case_label = new_label();
         char *next_case_label = new_label();
         char *val_str = malloc(50);
 
-        switch ($3.type) {
-            case INT_TYPE:
-                sprintf(val_str, "%d", $3.value.iVal);
-                break;
-            case FLOAT_TYPE:
-                sprintf(val_str, "%f", $3.value.fVal);
-                break;
-            case BOOL_TYPE:
-                sprintf(val_str, "%s", $3.value.bVal ? "true" : "false");
-                break;
-            case CHAR_TYPE:
-                sprintf(val_str, "'%c'", $3.value.cVal);
-                break;
-            case STRING_TYPE:
-                sprintf(val_str, "\"%s\"", $3.value.sVal);
-                break;
-            default:
-                strcpy(val_str, "unknown");
-                break;
+        switch ($2.type) {
+            case INT_TYPE: sprintf(val_str, "%d", $2.value.iVal); break;
+            case FLOAT_TYPE: sprintf(val_str, "%f", $2.value.fVal); break;
+            case BOOL_TYPE: sprintf(val_str, "%s", $2.value.bVal ? "true" : "false"); break;
+            case CHAR_TYPE: sprintf(val_str, "'%c'", $2.value.cVal); break;
+            case STRING_TYPE: sprintf(val_str, "\"%s\"", $2.value.sVal); break;
+            default: strcpy(val_str, "unknown");
         }
 
         char *temp = new_temp();
@@ -737,29 +666,24 @@ case_list:
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.next_label);
         free($<code_info>5.next_label);
     }
-    | /* empty */
-    | case_list CASE CONSTANT_VAL error {
+    | CASE CONSTANT_VAL error {
         report_error(SYNTAX_ERROR, "Expected ':'", prev_valid_line);
         yyerrok;
     }
-    | case_list CASE error {
+    | CASE error {
         report_error(SYNTAX_ERROR, "Invalid constant in switch case", prev_valid_line);
         yyerrok;
     }
 ;
 
 default_case:
-    DEFAULT COLON {
-        /* Generate label for default case */
-        char *default_label = new_label();
-        add_quadruple(OP_LABEL, NULL, NULL, default_label);
-    } statement_list
+    DEFAULT COLON { add_quadruple(OP_LABEL, NULL, NULL, NULL); } statement_list { $$ = NULL; }
     | DEFAULT error {
         report_error(SYNTAX_ERROR, "Expected ':'", prev_valid_line);
         yyerrok;
     }
-    | /* empty */
-    ;
+    | /* empty */ { $$ = NULL; }
+;
 
 return_stmt:
     RETURN expression {
@@ -787,29 +711,28 @@ return_stmt:
                     break;
                 default:
                     strcpy(val_str, "unknown");
+                }
+                add_quadruple(OP_RETURN, val_str, NULL, NULL);
+                free(val_str);
             }
-            add_quadruple(OP_RETURN, val_str, NULL, NULL);
-            free(val_str);
-        }
+        
     }
     | RETURN {
         /* Generate empty return quadruple */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
     }
+;
+
 expression:
-    logical_expr {
-        $$ = $1;
-    }
-    ;
+    logical_expr { $$ = $1; }
+;
 
 logical_expr:
     logical_expr OR logical_term {
-        /* Generate quadruple for OR operation */
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_OR, $1.temp_var, $3.temp_var, temp);
         } else {
-            /* Handle literals or expressions without temp vars */
             char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
             char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
             
@@ -837,24 +760,19 @@ logical_expr:
             if (!$3.temp_var) free(arg2);
         }
         
-        /* Create a new expression with the temp var */
         $$.type = BOOL_TYPE;
-        $$.value.bVal = true;  /* Default value */
+        $$.value.bVal = true;
         $$.temp_var = temp;
     }
-    | logical_term {
-        $$ = $1;
-    }
-    ;
+    | logical_term { $$ = $1; }
+;
 
 logical_term:
     logical_term AND equality_expr {
-        /* Generate quadruple for AND operation */
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_AND, $1.temp_var, $3.temp_var, temp);
         } else {
-            /* Handle literals or expressions without temp vars */
             char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
             char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
             
@@ -882,24 +800,19 @@ logical_term:
             if (!$3.temp_var) free(arg2);
         }
         
-        /* Create a new expression with the temp var */
         $$.type = BOOL_TYPE;
-        $$.value.bVal = true;  /* Default value */
+        $$.value.bVal = true;
         $$.temp_var = temp;
     }
-    | equality_expr {
-        $$ = $1;
-    }
-    ;
+    | equality_expr { $$ = $1; }
+;
 
 equality_expr:
     equality_expr EQ relational_expr {
-        /* Generate quadruple for equality comparison */
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_EQ, $1.temp_var, $3.temp_var, temp);
         } else {
-            /* Handle literals or expressions without temp vars */
             char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
             char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
             
@@ -929,18 +842,15 @@ equality_expr:
             if (!$3.temp_var) free(arg2);
         }
         
-        /* Create a new expression with the temp var */
         $$.type = BOOL_TYPE;
-        $$.value.bVal = true;  /* Default value */
+        $$.value.bVal = true;
         $$.temp_var = temp;
     }
     | equality_expr NEQ relational_expr {
-        /* Generate quadruple for inequality comparison */
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_NEQ, $1.temp_var, $3.temp_var, temp);
         } else {
-            /* Handle literals or expressions without temp vars */
             char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
             char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
             
@@ -970,15 +880,12 @@ equality_expr:
             if (!$3.temp_var) free(arg2);
         }
         
-        /* Create a new expression with the temp var */
         $$.type = BOOL_TYPE;
-        $$.value.bVal = true;  /* Default value */
+        $$.value.bVal = true;
         $$.temp_var = temp;
     }
-    | relational_expr {
-        $$ = $1;
-    }
-    ;
+    | relational_expr { $$ = $1; }
+;
 
 relational_expr:
     relational_expr LT additive_expr {
@@ -1523,75 +1430,61 @@ primary_expr:
     }
     ;
 
-repeat_stmt:
-    REPEAT LBRACE {
-        /* Generate labels for repeat loop */
-        char *start_label = new_label();
-        char *end_label = new_label();
-        
-        /* Save labels for later use */
-        $<code_info>$.start_label = start_label;
-        $<code_info>$.end_label = end_label;
-        
-        /* Place start label */
-        add_quadruple(OP_LABEL, NULL, NULL, start_label);
-        
-        enterScope();
-    } statement_list RBRACE {
-        exitScope();
-    } UNTIL LPAREN expression RPAREN SEMI {
-        /* Generate the condition evaluation */
-        char *temp = $9.temp_var;
-        if (!temp) {
-            /* Convert literal to string if no temp var */
-            temp = malloc(50);
-            switch ($9.type) {
-                case BOOL_TYPE: sprintf(temp, "%s", $9.value.bVal ? "true" : "false"); break;
-                case INT_TYPE: sprintf(temp, "%d", $9.value.iVal); break;
-                default: strcpy(temp, "unknown");
-            }
+repeat_stmt: REPEAT LBRACE {
+    enterScope();
+    /* Generate start label for repeat loop */
+    char *start_label = new_label();
+    add_quadruple(OP_LABEL, NULL, NULL, start_label);
+    $<code_info>$.code = start_label;
+} statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI {
+    exitScope();
+    /* Generate condition code */
+    char *end_label = new_label();
+    
+    /* If expression has a temp variable */
+    if ($8.temp_var) {
+        add_quadruple(OP_IFGOTO, $8.temp_var, NULL, end_label);
+    } else {
+        /* Create a comparison with true */
+        char *expr_result = malloc(50);
+        switch ($8.type) {
+            case INT_TYPE:
+                sprintf(expr_result, "%d", $8.value.iVal);
+                break;
+            case FLOAT_TYPE:
+                sprintf(expr_result, "%f", $8.value.fVal);
+                break;
+            case BOOL_TYPE:
+                sprintf(expr_result, "%s", $8.value.bVal ? "true" : "false");
+                break;
+            default:
+                strcpy(expr_result, "unknown");
         }
-        
-        /* If condition is false (0), go back to start of loop */
-        add_quadruple(OP_IFFALSE, temp, NULL, $<code_info>3.start_label);
-        
-        /* Place end label */
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>3.end_label);
-        
-        /* Clean up */
-        free($<code_info>3.start_label);
-        free($<code_info>3.end_label);
-        if (!$9.temp_var) free(temp);
+        add_quadruple(OP_IFGOTO, expr_result, NULL, end_label);
+        free(expr_result);
     }
-    | REPEAT error {
-        report_error(SYNTAX_ERROR, "Expected '(' in repeat statement", prev_valid_line);
-        yyerrok;
-    }
-    | REPEAT LBRACE statement_list RBRACE UNTIL error {
-        report_error(SYNTAX_ERROR, "Expected expression in repeat statement", prev_valid_line);
-        yyerrok;
-    }
-    | REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN error {
-        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
-        yyerrok;
-    }
-    ;
+    
+    /* Jump back to start of loop */
+    add_quadruple(OP_GOTO, NULL, NULL, $<code_info>3.code);
+    add_quadruple(OP_LABEL, NULL, NULL, end_label);
+    
+    /* Clean up */
+    free($<code_info>3.code);
+    free(end_label);
+}
+;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {
-        /* Generate function entry label */
-        char *func_label = strdup($3);
-        add_quadruple(OP_LABEL, NULL, NULL, func_label);
-        free(func_label);
-        
+    FUNCTION TYPE IDENTIFIER LPAREN param_list RPAREN LBRACE {
+        Value myValue;
+        myValue.iVal = 0;  // Initialize with a default value
+        addSymbol($3, $2, true, myValue, false, true, $5);
         enterScope();
+        add_quadruple(OP_LABEL, $3, NULL, NULL);
     } statement_list RBRACE {
         /* Generate implicit return if none exists */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
-        
         exitScope();
-        Value myValue;
-        addSymbol($3, $2, true, myValue, false, true, $5);
     }
     ;
 
@@ -1677,6 +1570,7 @@ param_list:
 param:
     TYPE IDENTIFIER {
         Value myValue;
+        myValue.iVal = 0; // Initialize to default
         addSymbol($2, $1, false, myValue, true, false, NULL);
         $$ = createParameter($2, $1);  // Create a new parameter
     }

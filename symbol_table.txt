@@ -4,11 +4,11 @@ Name: y, Type: int (0), Value: 7, Const: 0, Initialized: 1, Used: 0, IsFunction:
 Name: z, Type: int (0), Value: -2, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: t, Type: bool (3), Value: false, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: c, Type: bool (3), Value: true, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
-Name: m, Type: string (2), Value: ""zozi"", Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: m, Type: string (2), Value: ""mimo"", Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: a, Type: int (0), Value: N/A, Const: 1, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
 Name: b, Type: int (0), Value: N/A, Const: 1, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
 Name: add, Type: int (0), Value: N/A, Const: 0, Initialized: 1, Used: 0, IsFunction: 1, Params: int a, int b
-Name: i, Type: int (0), Value: 1, Const: 1, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
+Name: i, Type: int (0), Value: 1, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 
 === Scope Level: 1 ===
 Name: x, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
