@@ -113,7 +113,7 @@ identifier_list:
     ;
 
 assignment:
-    | IDENTIFIER INC
+    IDENTIFIER INC
     | IDENTIFIER DEC
     | INC IDENTIFIER
     | DEC IDENTIFIER
@@ -396,6 +396,7 @@ const_decl:
 %%
 
 void yyerror(const char *s) {
+    
 }
 
 int main() {
