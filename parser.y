@@ -94,7 +94,7 @@ void pop_loop_labels() {
 %type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
 %type <param_list> params param_list param
 %type <s> identifier_list
-%type <code_info> if_stmt else_part while_stmt for_stmt switch_stmt repeat_stmt for_header for_body
+%type <code_info> if_stmt else_part while_stmt while_header for_stmt switch_stmt repeat_stmt for_header for_body
 %type <expr> CONSTANT_VAL
 %type <temp_var> function_call
 %type <void_val> statement_list case_list default_case
@@ -402,55 +402,58 @@ else_part:
     }
 ;
 
-while_stmt: WHILE {
-    /* Generate start label for while loop */
-    char *start_label = new_label();
-    add_quadruple(OP_LABEL, NULL, NULL, start_label);
-    $<code_info>$.code = start_label;
-} LPAREN expression RPAREN {
-    /* Generate condition code */
-    char *body_label = new_label();
-    char *end_label = new_label();
-    
-    /* If expression has a temp variable */
-    if ($4.temp_var) {
-        add_quadruple(OP_IFGOTO, $4.temp_var, NULL, body_label);
-    } else {
-        /* Create a comparison with true */
-        char *expr_result = malloc(50);
-        switch ($4.type) {
-            case INT_TYPE:
-                sprintf(expr_result, "%d", $4.value.iVal);
-                break;
-            case FLOAT_TYPE:
-                sprintf(expr_result, "%f", $4.value.fVal);
-                break;
-            case BOOL_TYPE:
-                sprintf(expr_result, "%s", $4.value.bVal ? "true" : "false");
-                break;
-            default:
-                strcpy(expr_result, "unknown");
+while_stmt:
+    WHILE while_header LPAREN expression {
+        // Evaluate expression ($4)
+        expr condition = $<expr>4;
+        // Emit condition label
+        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>2.cond_label);
+
+        if (condition.temp_var) {
+            add_quadruple(OP_IFGOTO, condition.temp_var, NULL, $<code_info>2.body_label);
+        } else {
+            char buffer[50];
+            switch (condition.type) {
+                case INT_TYPE:   sprintf(buffer, "%d", condition.value.iVal); break;
+                case FLOAT_TYPE: sprintf(buffer, "%f", condition.value.fVal); break;
+                case BOOL_TYPE:  sprintf(buffer, "%s", condition.value.bVal ? "true" : "false"); break;
+                default:         strcpy(buffer, "unknown");
+            }
+            add_quadruple(OP_IFGOTO, buffer, NULL, $<code_info>2.body_label);
         }
-        add_quadruple(OP_IFGOTO, expr_result, NULL, body_label);
-        free(expr_result);
+
+        // Labels were created earlier and stored in $<code_info>2
+        add_quadruple(OP_GOTO, NULL, NULL, $<code_info>2.end_label);
+        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>2.body_label);
+
+    } RPAREN LBRACE { enterScope(); } statement_list RBRACE {
+        exitScope();
+
+        // Jump back to condition after body
+        add_quadruple(OP_GOTO, NULL, NULL, $2.cond_label);
+
+        // Emit end label
+        add_quadruple(OP_LABEL, NULL, NULL, $2.end_label);
+
+        // Free dynamically allocated labels
+        free($2.cond_label);
+        free($2.body_label);
+        free($2.end_label);
     }
-    
-    add_quadruple(OP_GOTO, NULL, NULL, end_label);
-    add_quadruple(OP_LABEL, NULL, NULL, body_label);
-    
-    /* Store labels for later use */
-    $<code_info>$.true_label = $<code_info>2.code;  /* Start label */
-    $<code_info>$.false_label = end_label;          /* End label */
-} LBRACE {enterScope();} statement_list RBRACE {
-    exitScope();
-    /* Generate code to jump back to condition */
-    add_quadruple(OP_GOTO, NULL, NULL, $<code_info>6.true_label);
-    add_quadruple(OP_LABEL, NULL, NULL, $<code_info>6.false_label);
-    
-    /* Clean up */
-    free($<code_info>6.true_label);
-    free($<code_info>6.false_label);
-}
+;
+
+while_header:
+    /* empty */ {
+        // Generate start and condition labels before expression is even parsed
+        char *cond_label  = new_label();
+        char *body_label  = new_label();
+        char *end_label  = new_label();
+
+        // Pass all labels
+        $$.cond_label  = cond_label;
+        $$.body_label  = body_label;
+        $$.end_label  = end_label;
+    }
 ;
 
 for_stmt:
@@ -1417,13 +1420,7 @@ primary_expr:
         $$ = $2;
     }
     | function_call {
-        /* The result of a function call is stored in a temp var */
-        char *temp = new_temp();
-        
-        /* Create a new expression with the temp var */
-        $$.type = BOOL_TYPE; /* Default, might be overridden by function's return type */
-        $$.value.bVal = true;
-        $$.temp_var = temp;
+        $$.temp_var = $1;        // <-- Use the temp var from function_call rule
     }
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);

@@ -15,6 +15,9 @@ if (x==y) {
     int x=0;
     int m,x,s;
 }
+else{
+    int y = 0;
+}
 
 function int add(int a, int b) {
     return a + b;
@@ -24,3 +27,10 @@ for (int i =0 ; i<5 ; i++) {
     int x = 5;
     int y =6;
 }
+
+while (x==y) {
+    int x = 5;
+    int y =6;
+}
+
+x = add(5,6);
