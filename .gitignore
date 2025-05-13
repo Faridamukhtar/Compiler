@@ -29,3 +29,4 @@ compiler
 output.asm
 parser.output
 *.txt
+compiler.dSYM
