@@ -21,6 +21,7 @@ function int foo(int a, float b) {
 }
 
 function int factorial(int n) {
+    x = 5 ;
     if (n == 0){
         return 1;
     }
@@ -29,13 +30,14 @@ function int factorial(int n) {
     }
 }
 
-function void print_table(int limit) {
+function int print_table(int limit) {
     int i, j;
     for (int i =1; i <= limit; i++) {
         for (int j = 1; j <= limit; j++) {
             print (i * j);
         }
     }
+    print );
 }
 
 function void main() {

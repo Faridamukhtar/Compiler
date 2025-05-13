@@ -93,11 +93,23 @@ statement:
 declaration:
     TYPE identifier_list
     | TYPE IDENTIFIER ASSIGN expression
+    | TYPE error {
+        report_error(SYNTAX_ERROR, "Expected identifier after type", prev_valid_line);
+        yyerrok;
+    }
+    | TYPE IDENTIFIER ASSIGN error {
+        report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 identifier_list:
     IDENTIFIER
     | identifier_list COMMA IDENTIFIER
+    | identifier_list COMMA error {
+        report_error(SYNTAX_ERROR, "Expected an identifier", prev_valid_line);
+        yyerrok;
+    } 
     ;
 
 assignment:
@@ -106,43 +118,74 @@ assignment:
     | INC IDENTIFIER
     | DEC IDENTIFIER
     | IDENTIFIER ASSIGN expression
+    | IDENTIFIER ASSIGN error {
+        report_error(SYNTAX_ERROR, "Expected an expression", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 if_stmt:
     IF LPAREN expression RPAREN LBRACE statement_list RBRACE else_part
     | IF error {
-        report_error(SYNTAX_ERROR, "Missing '(' before if condition", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected '(' in if condition", prev_valid_line);
         yyerrok;
     }
     | IF LPAREN expression error {
-        report_error(SYNTAX_ERROR, "Missing ')' after if condition", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected ')' in if condition", prev_valid_line);
         yyerrok;
     }
     | IF LPAREN expression RPAREN error {
-        report_error(SYNTAX_ERROR, "Malformed if condition", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Malformed if statement", prev_valid_line);
         yyerrok;
     }
-
     ;
 
 else_part:
     ELSE LBRACE statement_list RBRACE
     | ELSE if_stmt
+    | ELSE error {
+        report_error(SYNTAX_ERROR, "Malformed else statement", prev_valid_line);
+        yyerrok;
+    }
     | /* empty */
     ;
 
 while_stmt:
     WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+    | WHILE error {
+        report_error(SYNTAX_ERROR, "Expected '(' in while condition", prev_valid_line);
+        yyerrok;
+    }
     | WHILE LPAREN expression error {
-        report_error(SYNTAX_ERROR, "Missing ')' in while condition", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected ')' in while condition", prev_valid_line);
+        yyerrok;
+    }
+    | WHILE LPAREN expression RPAREN error {
+        report_error(SYNTAX_ERROR, "Malformed while statement", prev_valid_line);
+        yyerrok;
+    }
+    | WHILE LPAREN error {
+        report_error(SYNTAX_ERROR, "Malformed while loop header", prev_valid_line);
         yyerrok;
     }
     ;
 
 for_stmt:
     FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
-    | FOR LPAREN error {
-        report_error(SYNTAX_ERROR, "Malformed for loop header", prev_valid_line);
+    | FOR error {
+        report_error(SYNTAX_ERROR, "Expected '(' in for loop", prev_valid_line);
+        yyerrok;
+    }
+    | FOR LPAREN for_stmt_declaration error {
+        report_error(SYNTAX_ERROR, "Expected ';' in for loop", prev_valid_line);
+        yyerrok;
+    }
+    | FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment error {
+        report_error(SYNTAX_ERROR, "Expected ')' in for loop", prev_valid_line);
+        yyerrok;
+    }
+    | FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN error {
+        report_error(SYNTAX_ERROR, "Malformed for statement", prev_valid_line);
         yyerrok;
     }
     ;
@@ -151,6 +194,18 @@ for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression
     | TYPE IDENTIFIER
     | IDENTIFIER ASSIGN expression
+    | TYPE error {
+        report_error(SYNTAX_ERROR, "Expected identifier after type", prev_valid_line);
+        yyerrok;
+    }
+    | TYPE IDENTIFIER ASSIGN error {
+        report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
+        yyerrok;
+    }
+    | IDENTIFIER ASSIGN error {
+        report_error(SYNTAX_ERROR, "Expected expression after assignment", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 CONSTANT_VAL:
@@ -162,20 +217,39 @@ CONSTANT_VAL:
 
 switch_stmt:
     SWITCH LPAREN IDENTIFIER RPAREN LBRACE case_list default_case RBRACE
+    | SWITCH error {
+        report_error(SYNTAX_ERROR, "Expected '(' in switch statement", prev_valid_line);
+        yyerrok;
+    }
+    | SWITCH LPAREN IDENTIFIER error {
+        report_error(SYNTAX_ERROR, "Expected ')' in switch statement", prev_valid_line);
+        yyerrok;
+    }
+    | SWITCH LPAREN IDENTIFIER RPAREN error {
+        report_error(SYNTAX_ERROR, "Malformed switch statement", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 case_list:
     case_list CASE CONSTANT_VAL COLON statement_list
+    | case_list CASE CONSTANT_VAL error {
+        report_error(SYNTAX_ERROR, "Expected ':'", prev_valid_line);
+        yyerrok;
+    }
     | case_list CASE error {
         report_error(SYNTAX_ERROR, "Invalid constant in switch case", prev_valid_line);
         yyerrok;
     }
-
     | /* empty */
     ;
 
 default_case:
     DEFAULT COLON statement_list
+    | DEFAULT error {
+        report_error(SYNTAX_ERROR, "Expected ':'", prev_valid_line);
+        yyerrok;
+    }
     | /* empty */
     ;
 
@@ -249,19 +323,51 @@ primary_expr:
 
 repeat_stmt:
     REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI
+    | REPEAT error {
+        report_error(SYNTAX_ERROR, "Expected '(' in repeat statement", prev_valid_line);
+        yyerrok;
+    }
+    /* | REPEAT LBRACE statement_list error {
+        report_error(SYNTAX_ERROR, "Expected ')' in repeat statement", prev_valid_line);
+        yyerrok;
+    } */
+    | REPEAT LBRACE statement_list RBRACE UNTIL error {
+        report_error(SYNTAX_ERROR, "Expected expression in repeat statement", prev_valid_line);
+        yyerrok;
+    }
+    | REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE
-    | FUNCTION error {
-        report_error(SYNTAX_ERROR, "Malformed function declaration", prev_valid_line);
+    /* | FUNCTION error {
+        report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
         yyerrok;
     }
+    | FUNCTION TYPE IDENTIFIER error {
+        report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
+        yyerrok;
+    }
+    | FUNCTION TYPE IDENTIFIER LPAREN params error {
+        report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
+        yyerrok;
+    } */
     ;
 
 function_call:
     IDENTIFIER LPAREN argument_list RPAREN
     | IDENTIFIER LPAREN RPAREN
+    /* | IDENTIFIER error {
+        report_error(SYNTAX_ERROR, "Expected '(' in function call", prev_valid_line);
+        yyerrok;
+    } */
+    | IDENTIFIER LPAREN error {
+        report_error(SYNTAX_ERROR, "Expected ')' in function call", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 argument_list:
