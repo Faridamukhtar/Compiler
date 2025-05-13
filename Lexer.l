@@ -26,7 +26,7 @@ int current_column = 1;
 DIGIT       [0-9]
 LETTER      [a-zA-Z]
 ID          [a-zA-Z_][a-zA-Z0-9_]*
-TYPE        int|float|bool|string|void
+TYPE        int|float|bool|string|void|char
 INT         {DIGIT}+
 FLOAT       {DIGIT}+"."{DIGIT}+
 BOOL        true|false
