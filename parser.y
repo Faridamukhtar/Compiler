@@ -709,6 +709,7 @@ CONSTANT_VAL:
 ;
 switch_stmt:
     SWITCH LPAREN IDENTIFIER RPAREN {
+        current_switch_var = strdup($3);
         current_switch_end_label = new_label();
         push_loop_labels(current_switch_end_label, NULL);
         $<code_info>$ = (typeof($<code_info>$)){
@@ -1607,13 +1608,13 @@ repeat_stmt:
         char *end_label = new_label();    // break target
 
         add_quadruple(OP_LABEL, NULL, NULL, start_label);
-        push_loop_labels(end_label, start_label);  // 👈 push loop labels
+        push_loop_labels(end_label, start_label);
 
         $<code_info>$.code = start_label;
-        $<code_info>$.end_label = end_label;       // optional: pass it for consistency
+        $<code_info>$.end_label = end_label;     
     } statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI {
         exitScope();
-        pop_loop_labels();  // 👈 pop after scope closes
+        pop_loop_labels(); 
 
         // If expression has a temp variable
         if ($8.temp_var) {
