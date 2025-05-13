@@ -662,7 +662,13 @@ const_decl:
         Value myValue = $5.value;
         addSymbol($3, $2, true, myValue, true, false, NULL);
     }
+    | CONST IDENTIFIER ASSIGN expression {
+        report_error(SEMANTIC_ERROR, "Missing Type", @1.first_line);
+        fprintf(stderr, "Semantic Error (line %d): Constant '%s' declared without a type.\n", @2.first_line, $2);
+        // exit(1);
+    }
     ;
+
 
 %%
 
