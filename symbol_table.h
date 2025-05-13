@@ -71,8 +71,6 @@ void handlePostfixDec(char *identifier);
 // Function to handle prefix increment (INC IDENTIFIER)
 void handlePrefixInc(char *identifier);
 
-// void reportUnusedVariables();
-// void reportUninitializedVariables();
-
+void reportUnusedVariables();
 
 #endif

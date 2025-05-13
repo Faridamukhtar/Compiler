@@ -529,7 +529,7 @@ primary_expr:
         Value val;
         val.sVal = strdup($1); 
         $$ = (expr){.type = STRING_TYPE, .value = val};
-        }
+    }
     | LPAREN expression RPAREN {
         $$ = $2; 
     }
@@ -542,11 +542,14 @@ primary_expr:
             report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
-    }
-        if (!entry->isInitialized  && !entry->isFunction) {
-            fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
         }
-        $$ = (expr){.type = entry->type, .value = entry->value};
+        else {
+            if (!entry->isInitialized  && !entry->isFunction) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
+            entry->isUsed = true;
+            $$ = (expr){.type = entry->type, .value = entry->value};
+        }
     }
     ;
 
@@ -667,8 +670,7 @@ int main() {
         } else {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
-        // reportUnusedVariables();
-        // reportUninitializedVariables();
+        reportUnusedVariables();
         fclose(input);
         clearSymbolTables(currentScope);
     } else {
