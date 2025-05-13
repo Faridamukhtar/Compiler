@@ -20,6 +20,10 @@ void yyerror(const char *s);
     #include "parameter.h"
 }
 
+/* Enable location tracking */
+%define api.location.type {struct YYLTYPE { int first_line; int first_column; int last_line; int last_column; }}
+%locations
+
 %union {
     int i;
     char c;
@@ -95,7 +99,11 @@ declaration:
         if (result) {
             Value myvalue;
             for (int i = 0; i < count; i++) {
-                addSymbol(result[i], $1, false, myvalue, false, false, NULL);
+                if (isSymbolDeclaredInCurrentScope(result[i])) {
+                    fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, result[i]);
+                } else {
+                    addSymbol(result[i], $1, false, myvalue, false, false, NULL);
+                }
             }
             free_split_result(result, count);
         } else {
@@ -103,7 +111,11 @@ declaration:
         }
     }
     | TYPE IDENTIFIER ASSIGN expression {
-        addSymbol($2, $1, true , $4.value, false, false, NULL);
+        if (isSymbolDeclaredInCurrentScope($2)) {
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, $2);
+        } else {
+            addSymbol($2, $1, true , $4.value, false, false, NULL);
+        }
     }
     ;
 
@@ -125,7 +137,7 @@ assignment:
     | DEC IDENTIFIER {
         handlePostfixDec($2);
     }
-    | IDENTIFIER ASSIGN expression
+    | IDENTIFIER ASSIGN expression 
     {
         updateSymbolValue($1, $3.value);
     }
@@ -200,7 +212,7 @@ logical_expr:
     | logical_term {
         $$ = $1;
     }
-;
+    ;
 
 logical_term:
     logical_term AND equality_expr {
@@ -209,7 +221,7 @@ logical_term:
     | equality_expr {
         $$ = $1;
     }
-;
+    ;
 
 equality_expr:
     equality_expr EQ relational_expr {
@@ -221,7 +233,7 @@ equality_expr:
     | relational_expr {
         $$ = $1;
     }
-;
+    ;
 
 relational_expr:
     relational_expr LT additive_expr {
@@ -239,7 +251,7 @@ relational_expr:
     | additive_expr {
         $$ = $1;
     }
-;
+    ;
 
 additive_expr:
     additive_expr PLUS multiplicative_expr {
@@ -251,7 +263,7 @@ additive_expr:
     | multiplicative_expr {
         $$ = $1;
     }
-;
+    ;
 
 multiplicative_expr:
     multiplicative_expr MUL exponent_expr {
@@ -263,7 +275,7 @@ multiplicative_expr:
     | exponent_expr {
         $$ = $1;
     }
-;
+    ;
 
 exponent_expr:
     exponent_expr EXP unary_expr {
@@ -272,7 +284,7 @@ exponent_expr:
     | unary_expr {
         $$ = $1;
     }
-;
+    ;
 
 unary_expr:
     MINUS unary_expr {
@@ -282,7 +294,7 @@ unary_expr:
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
     }
     | primary_expr { $$ = $1; }
-;
+    ;
 
 primary_expr:
     INT {
@@ -324,7 +336,7 @@ primary_expr:
         }
         $$ = (expr){.type = entry->type, .value = entry->value};
     }
-;
+    ;
 
 repeat_stmt:
     REPEAT LBRACE {enterScope();} statement_list RBRACE {exitScope();} UNTIL LPAREN expression RPAREN SEMI
@@ -334,16 +346,16 @@ function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();} statement_list RBRACE {
         exitScope();
         Value myValue;
-        addSymbol($3, $2, true, myValue, false, true, $5);  
+        addSymbol($3, $2, true, myValue, false, true, $5);
     }
     ;
 
-function_call: 
+function_call:
     IDENTIFIER LPAREN argument_list RPAREN
     | IDENTIFIER LPAREN RPAREN
     ;
 
-argument_list: 
+argument_list:
     argument_list COMMA expression
     | expression
     ;
@@ -370,7 +382,7 @@ param:
     }
     ;
 
-const_decl: 
+const_decl:
     CONST TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $5.value;
         addSymbol($3, $2, true, myValue, true, false, NULL);
@@ -380,7 +392,7 @@ const_decl:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Parse error: %s\n", s);
+    fprintf(stderr, "Parse error at line %d: %s\n", yylloc.first_line, s);
 }
 
 int main() {
@@ -402,6 +414,8 @@ int main() {
         } else {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
+        // reportUnusedVariables();
+        // reportUninitializedVariables();
         fclose(input);
         clearSymbolTables(currentScope);
     } else {
