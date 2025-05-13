@@ -454,9 +454,8 @@ while_stmt: WHILE {
 ;
 
 for_stmt:
-    FOR LPAREN for_header SEMI expression SEMI assignment RPAREN for_body {
-        // Emit increment label
-        add_quadruple(OP_LABEL, NULL, NULL, $3.incr_label);
+    FOR LPAREN for_header assignment RPAREN for_body {
+        // Now emit the loop logic from here using $3 (header data)
 
         // Jump back to condition
         add_quadruple(OP_GOTO, NULL, NULL, $3.cond_label);
@@ -468,45 +467,56 @@ for_stmt:
         free($3.cond_label);
         free($3.body_label);
         free($3.end_label);
-        free($3.incr_label);
     }
-    | FOR error {
+    | FOR error for_header assignment RPAREN for_body {
         report_error(SYNTAX_ERROR, "Expected '(' in for loop", prev_valid_line);
         yyerrok;
     }
-    | FOR LPAREN for_header SEMI expression SEMI assignment error {
+    | FOR LPAREN for_header assignment error {
         report_error(SYNTAX_ERROR, "Expected ')' in for loop", prev_valid_line);
         yyerrok;
     }
+
+
 ;
 
 for_header:
-    for_stmt_declaration {
+    for_stmt_declaration SEMI expression SEMI
+    {
         char *cond_label = new_label();
         char *body_label = new_label();
-        char *end_label = new_label();
-        char *incr_label = new_label();
+        char *end_label  = new_label();
 
         add_quadruple(OP_LABEL, NULL, NULL, cond_label);
 
+        if ($3.temp_var) {
+            add_quadruple(OP_IFGOTO, $3.temp_var, NULL, body_label);
+        } else {
+            char buffer[50];
+            sprintf(buffer, "%d", $3.value.iVal); // adjust based on type
+            add_quadruple(OP_IFGOTO, buffer, NULL, body_label);
+        }
+
+        add_quadruple(OP_GOTO, NULL, NULL, end_label);
+        add_quadruple(OP_LABEL, NULL, NULL, body_label);
+
+        // Pass info to for_body
         $$.cond_label = cond_label;
         $$.body_label = body_label;
         $$.end_label = end_label;
-        $$.incr_label = incr_label;
     }
-    | for_stmt_declaration error {
+    | for_stmt_declaration error expression SEMI {
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
-;
+    | for_stmt_declaration SEMI expression error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    ;
 
 for_body:
-    LBRACE { 
-        enterScope(); 
-        add_quadruple(OP_LABEL, NULL, NULL, $<code_info>0.body_label);
-    } statement_list RBRACE { 
-        exitScope(); 
-    }
+    LBRACE { enterScope(); } statement_list RBRACE { exitScope(); }
 ;
 
 for_stmt_declaration:
