@@ -150,7 +150,7 @@ statement:
     | const_decl SEMI
     | function_call SEMI
     | CONTINUE SEMI {
-        add_quadruple(OP_GOTO, get_continue_label(), NULL, NULL);
+        add_quadruple(OP_GOTO, NULL, NULL, get_continue_label());
     }
         /* Generate code for continue - usually jumps to loop condition */
         /* This would need to keep track of current loop's continue label */
@@ -1649,7 +1649,7 @@ function_decl:
         currentFunctionReturnType = mapStringToValueType($2);
         enterScope();
         addParamsToSymbolTable($5);
-        add_quadruple(OP_LABEL, $3, NULL, NULL);
+        add_quadruple(OP_LABEL, NULL, NULL, $3);
     } statement_list RBRACE {
         /* Generate implicit return if none exists */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);

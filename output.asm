@@ -6,26 +6,27 @@ section .text
 global _start
 
 _start:
-    mov dword [x], 5
-    mov dword [y], 5
-    mov dword [z], 0
-    mov dword [t], false
-    mov dword [c], true
-    mov dword [m], "mimo"
-    mov dword [m], "zozi"
-    mov dword [x], 0
-    mov dword [y], 0
-    mov dword [z], 0
+    mov dword [C1], 5
+    mov dword [C2], true
+    mov dword [x], 10
+    mov dword [y], 20
+    mov dword [z], 30
+    mov dword [a], 2.500000
+    mov dword [flag], false
+    mov dword [y], t2
+    mov dword [y], t4
+    mov dword [y], t5
+    mov dword [y], t7
     mov dword [i], 0
-    mov dword [x], 5
-    mov dword [y], 6
-    mov dword [x], 5
-    mov dword [y], 6
-    mov dword [x], 5
-    mov dword [y], 6
-    mov dword [x], 5
-    mov dword [y], 6
-    mov dword [z], 7
+    mov dword [i], t11
+    mov dword [x], t12
+    mov dword [z], t13
+    mov dword [y], t16
+    mov dword [y], t18
+    mov dword [y], t19
+    mov dword [sum], t20
+    mov dword [x], t26
+    mov dword [flag], t27
     mov eax, 1
     xor ebx, ebx
     int 0x80
