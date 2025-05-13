@@ -100,6 +100,7 @@ declaration:
             Value myvalue;
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
+                    yyerror("Redeclared identifier");
                     fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, result[i]);
                 } else {
                     addSymbol(result[i], $1, false, myvalue, false, false, NULL);
@@ -112,6 +113,7 @@ declaration:
     }
     | TYPE IDENTIFIER ASSIGN expression {
         if (isSymbolDeclaredInCurrentScope($2)) {
+            yyerror("Redeclared identifier");
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, $2);
         } else {
             addSymbol($2, $1, true , $4.value, false, false, NULL);
@@ -127,6 +129,7 @@ identifier_list:
 assignment: 
     IDENTIFIER INC {
         if (!lookupSymbol($1)) {
+            yyerror("Undeclared identifier");
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
             // YYABORT;
         }
@@ -134,6 +137,7 @@ assignment:
     }
     | IDENTIFIER DEC {
         if (!lookupSymbol($1)) {
+            yyerror("Undeclared identifier");
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
             // YYABORT;
         }
@@ -141,6 +145,7 @@ assignment:
     }
     | INC IDENTIFIER {
         if (!lookupSymbol($2)) {
+            yyerror("Undeclared identifier");
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @2.first_line, $2);
             // YYABORT;
         }
@@ -148,6 +153,7 @@ assignment:
     }
     | DEC IDENTIFIER {
         if (!lookupSymbol($2)) {
+            yyerror("Undeclared identifier");
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @2.first_line, $2);
             // YYABORT;
         }
@@ -156,8 +162,9 @@ assignment:
     | IDENTIFIER ASSIGN expression 
     {
         if (!lookupSymbol($1)) {
+            yyerror("Undeclared identifier");
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
-            YYABORT;
+            // YYABORT;
         }
         updateSymbolValue($1, $3.value);
     }
