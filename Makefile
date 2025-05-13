@@ -6,7 +6,7 @@ all:
 	make compiler
 
 compiler: lex.yy.c parser.tab.c symbol_table.c
-	$(CC) $(CFLAGS) -o compiler lex.yy.c parser.tab.c symbol_table.c helpers.c
+	$(CC) $(CFLAGS) -o compiler lex.yy.c parser.tab.c symbol_table.c helpers.c paramater.c
 
 parser.tab.c parser.tab.h: parser.y
 	bison -d parser.y

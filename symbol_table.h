@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "parameter.h"
 
 typedef enum {
     INT_TYPE,
@@ -21,13 +22,6 @@ typedef union {
     char cVal;
     bool bVal;
 } Value;
-
-typedef struct Parameter {
-    char *name;
-    char *type;
-    struct Parameter *next;
-} Parameter;
-
 
 typedef struct expression {
     ValueType type; //int

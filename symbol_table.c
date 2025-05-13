@@ -16,7 +16,6 @@ void initSymbolTable() {
     }
 }
 
-
 void enterScope() {
     Scope *newScope = (Scope *)malloc(sizeof(Scope));
     newScope->symbols = NULL;
@@ -27,11 +26,9 @@ void enterScope() {
     scopeCount++;
 }
 
-
 void exitScope() {
     currentScope = currentScope->parent;  
 }
-
 
 void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params, char *returnType) {
     if (currentScope == NULL) {

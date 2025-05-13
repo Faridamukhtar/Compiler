@@ -5,9 +5,14 @@ y++;
 int z =0;
 z--;
 --z;
+bool t = false;
+bool c = true;
+float t=3.14;
+string m ="mimo";
+m="zozi";
+char a = "a";
 
-
-const int x = 5;
-TYPE -> int
-Identifer_name -> x
-5 -> value
+if (x==y) {
+    int x=0;
+    int m,x,s;
+}
