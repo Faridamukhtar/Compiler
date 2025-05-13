@@ -1,9 +1,5 @@
 const int x = 5;
-<<<<<<< HEAD
 int y = 5;
-=======
-int y =5 ;
->>>>>>> dc8f9e8 (feat: handled blocks + strings + correct fn params calling)
 y++;    
 ++y;
 int z =0;
@@ -30,7 +26,6 @@ function int add(int a, int b) {
     return a + b;
 }
 
-<<<<<<< HEAD
 for (int i =0 ; i<5 ; i++) {
     int x = 5;
     int y =6;
@@ -61,24 +56,3 @@ switch (x) {
         int z = 7;
         break;
 }
-=======
-{
-    int x=0;
-    int m,x,s; 
-}
-
-/*
-function void main() {
-    int num;
-    print("Enter a number: ");
-    if (num < 0){
-        print("Negative numbers are not allowed.");
-    }
-    else
-    {
-        print("Factorial of ", num, " is ", factorial(num));
-        print("Multiplication table for ", num, ":");
-        print_table(num);
-    }
-}*/
->>>>>>> dc8f9e8 (feat: handled blocks + strings + correct fn params calling)

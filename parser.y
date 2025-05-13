@@ -1770,28 +1770,35 @@ int main() {
             printf("Parsing failed with errors.\n");
         } else {
             printf("Parsing successful!\n");
-            print_quadruples();
-
-            // Write quadruples to file
-            FILE *quad_output = fopen("quadruples.txt", "w");
-            if (quad_output) {
-                fprintf(quad_output, "=== Generated Quadruples ===\n");
-                for (int i = 0; i < quad_count; i++) {
-                    fprintf(quad_output, "[%d] (%s, %s, %s, %s)\n", i,
-                        get_op_string(quadruples[i].op),
-                        quadruples[i].arg1 ? quadruples[i].arg1 : "_",
-                        quadruples[i].arg2 ? quadruples[i].arg2 : "_",
-                        quadruples[i].result ? quadruples[i].result : "_"
-                    );
-                }
-                fclose(quad_output);
-                printf("Quadruples written to quadruples.txt\n");
-            }
-
-            // Convert quadruples to assembly
-            convert_quadruples_to_assembly("output.asm");
-            printf("Assembly code written to output.asm\n");
         }
+
+        // TODO: MOVE THIS INSIDE PREVIOUS ELSE
+        // ------------------------------------------------------------------------------------------//
+
+        print_quadruples();
+
+
+        // Write quadruples to file
+        FILE *quad_output = fopen("quadruples.txt", "w");
+        if (quad_output) {
+            fprintf(quad_output, "=== Generated Quadruples ===\n");
+            for (int i = 0; i < quad_count; i++) {
+                fprintf(quad_output, "[%d] (%s, %s, %s, %s)\n", i,
+                    get_op_string(quadruples[i].op),
+                    quadruples[i].arg1 ? quadruples[i].arg1 : "_",
+                    quadruples[i].arg2 ? quadruples[i].arg2 : "_",
+                    quadruples[i].result ? quadruples[i].result : "_"
+                );
+            }
+            fclose(quad_output);
+            printf("Quadruples written to quadruples.txt\n");
+        }
+
+        // Convert quadruples to assembly
+        convert_quadruples_to_assembly("output.asm");
+        printf("Assembly code written to output.asm\n");
+
+        // ------------------------------------------------------------------------------------------//
 
         FILE *output = fopen("symbol_table.txt", "w");
         if (output) {

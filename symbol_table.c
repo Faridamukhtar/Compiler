@@ -282,7 +282,7 @@ void addParamsToSymbolTable(const Parameter* head) {
         if (isSymbolDeclaredInCurrentScope(param->name)) {
             fprintf(stderr, "Semantic Error: Parameter '%s' already declared in this scope.\n", param->name);
         } else {
-            Value val;
+            Value val = {0};
             addSymbol(param->name, param->type, true, val, false, false, NULL);
         }
 
