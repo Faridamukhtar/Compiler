@@ -9,15 +9,15 @@ extern int yylineno;
 int last_valid_line = 1;
 int prev_valid_line = 1;
 
-// int current_column = 1;
-// // Tell Flex how to update the token's location
-// #define YY_USER_ACTION \
-//     yylloc.first_line = yylloc.last_line = yylineno; \
-//     yylloc.first_column = current_column; \
-//     yylloc.last_column = current_column + yyleng - 1; \
-//     current_column += yyleng;
+int current_column = 1;
+// Tell Flex how to update the token's location
+#define YY_USER_ACTION \
+    yylloc.first_line = yylloc.last_line = yylineno; \
+    yylloc.first_column = current_column; \
+    yylloc.last_column = current_column + yyleng - 1; \
+    current_column += yyleng;
 
-// 
+
 
 %}
 
