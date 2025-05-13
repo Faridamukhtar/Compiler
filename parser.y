@@ -130,8 +130,7 @@ declaration:
             Value myvalue;
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
-                    yyerror("Redeclared identifier");
-                    fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, result[i]);
+                    fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, result[i]);
                 } else {
                     addSymbol(result[i], $1, false, myvalue, false, false, NULL);
                 }
@@ -143,8 +142,7 @@ declaration:
     }
     | TYPE IDENTIFIER ASSIGN expression {
         if (isSymbolDeclaredInCurrentScope($2)) {
-            yyerror("Redeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", @2.first_line, $2);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, $2);
         } else {
             addSymbol($2, $1, true , $4.value, false, false, NULL);
         }
@@ -171,40 +169,35 @@ identifier_list:
 assignment:
     IDENTIFIER INC {
         if (!lookupSymbol($1)) {
-            yyerror("Undeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
         handlePrefixInc($1);
     }
     | IDENTIFIER DEC {
         if (!lookupSymbol($1)) {
-            yyerror("Undeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
         handlePostfixDec($1);
     }
     | INC IDENTIFIER {
         if (!lookupSymbol($2)) {
-            yyerror("Undeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @2.first_line, $2);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
         }
         handlePrefixInc($2);
     }
     | DEC IDENTIFIER {
         if (!lookupSymbol($2)) {
-            yyerror("Undeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @2.first_line, $2);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
         }
         handlePostfixDec($2);
     }
     | IDENTIFIER ASSIGN expression {
         if (!lookupSymbol($1)) {
-            yyerror("Undeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
         updateSymbolValue($1, $3.value);
@@ -487,12 +480,11 @@ primary_expr:
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);
         if (!entry) {
-            yyerror("Undeclared identifier");
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", @1.first_line, $1);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
         if (!entry->isInitialized) {
-            fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", @1.first_line, $1);
+            fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
         }
         $$ = (expr){.type = entry->type, .value = entry->value};
     }

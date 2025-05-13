@@ -1,6 +1,5 @@
 const int x = 5;
-int y=5;
-y++;
+y++;    
 ++y;
 int z =0;
 z--;
