@@ -31,13 +31,15 @@ function int factorial(int n) {
 }
 
 function int print_table(int limit) {
-    int i, j
+    int i, j;
     for (int i =1; i <= limit; i++) {
         for (int j = 1; j <= limit; j++) {
             print (i * j);
         }
     }
     print ();
+    string x = "zzz";
+    //int x = 2 @ 5 ;
 }
 
 function void main() {
