@@ -13,19 +13,18 @@ Parameter* createParameter(const char *name, const char *type) {
     return param;
 }
 
-Parameter* addParameter(Parameter *head, const char *name, const char *type) {
-    Parameter *new_param = createParameter(name, type);
-    if (!new_param) return head;
+Parameter* addParameter(Parameter *head, Parameter *param) {
+    if (!param) return head;
 
     if (!head) {
-        return new_param;
+        return param;
     }
 
     Parameter *current = head;
     while (current->next) {
         current = current->next;
     }
-    current->next = new_param;
+    current->next = param;
     return head;
 }
 
@@ -45,3 +44,23 @@ void printParameterList(const Parameter *head) {
         head = head->next;
     }
 }
+
+char* parameterListToString(const Parameter* head) {
+    static char buffer[1024];
+    buffer[0] = '\0';
+
+    while (head) {
+        strcat(buffer, head->type);
+        strcat(buffer, " ");
+        strcat(buffer, head->name);
+        if (head->next) strcat(buffer, ", ");
+        head = head->next;
+    }
+
+    if (strlen(buffer) == 0) {
+        strcpy(buffer, "N/A");
+    }
+
+    return buffer;
+}
+

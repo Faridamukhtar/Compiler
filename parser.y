@@ -95,7 +95,7 @@ declaration:
         if (result) {
             Value myvalue;
             for (int i = 0; i < count; i++) {
-                addSymbol(result[i], $1, false, myvalue, false, false, NULL, NULL);
+                addSymbol(result[i], $1, false, myvalue, false, false, NULL);
             }
             free_split_result(result, count);
         } else {
@@ -103,7 +103,7 @@ declaration:
         }
     }
     | TYPE IDENTIFIER ASSIGN expression {
-        addSymbol($2, $1, true , $4.value, false, false, NULL, NULL);
+        addSymbol($2, $1, true , $4.value, false, false, NULL);
     }
     ;
 
@@ -152,11 +152,11 @@ for_stmt:
 for_stmt_declaration:
     TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $4.value;
-        addSymbol($2, $1, true, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, true, myValue, true, false, NULL);
     }
     | TYPE IDENTIFIER {
         Value myValue;
-        addSymbol($2, $1, false, myValue, false, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, false, false, NULL);
     }
     | IDENTIFIER ASSIGN expression {
         updateSymbolValue($1, $3.value);
@@ -333,7 +333,7 @@ repeat_stmt:
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE {
         Value myValue;
-        addSymbol($3, NULL, true, myValue, false, true, $5, $2);  // Add function to symbol table
+        addSymbol($3, $2, true, myValue, false, true, $5);  //remove return type use el type w addlo void
     }
     ;
 
@@ -354,7 +354,7 @@ params:
 
 param_list:
     param_list COMMA param {
-        // $$ = addParameter($1, $3);  // Add the parameter to the list
+        $$ = addParameter($1, $3);  // Add the parameter to the list
     }
     | param {
         $$ = $1;
@@ -364,7 +364,7 @@ param_list:
 param:
     TYPE IDENTIFIER {
         Value myValue;
-        addSymbol($2, $1, false, myValue, true, false, NULL, NULL);
+        addSymbol($2, $1, false, myValue, true, false, NULL);
         $$ = createParameter($2, $1);  // Create a new parameter
     }
     ;
@@ -372,7 +372,7 @@ param:
 const_decl: 
     CONST TYPE IDENTIFIER ASSIGN expression {
         Value myValue = $5.value;
-        addSymbol($3, $2, true, myValue, true, false, NULL, NULL);
+        addSymbol($3, $2, true, myValue, true, false, NULL);
     }
     ;
 

@@ -10,9 +10,12 @@ bool c = true;
 float t=3.14;
 string m ="mimo";
 m="zozi";
-char a = "a";
 
 if (x==y) {
     int x=0;
     int m,x,s;
+}
+
+function int add(int a, int b) {
+    return a + b;
 }
