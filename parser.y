@@ -151,8 +151,9 @@ declaration:
             if (!areTypesCompatible(declaredType, $4.type)) {
                 report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
                 fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $2);
+            } else {
+                addSymbol($2, $1, true , $4.value, false, false, NULL);
             }
-            addSymbol($2, $1, true , $4.value, false, false, NULL);
         }
     }
     | TYPE error {
