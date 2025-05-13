@@ -136,17 +136,17 @@ if_stmt:
     ;
 
 else_part:
-    ELSE LBRACE statement_list RBRACE
+    ELSE LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     | ELSE if_stmt
     | /* empty */
     ;
 
 while_stmt:
-    WHILE LPAREN expression RPAREN LBRACE statement_list RBRACE
+    WHILE LPAREN expression RPAREN LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     ;
 
 for_stmt:
-    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE statement_list RBRACE
+    FOR LPAREN for_stmt_declaration SEMI expression SEMI assignment RPAREN LBRACE {enterScope();} statement_list RBRACE {exitScope();}
     ;
 
 for_stmt_declaration:
@@ -171,7 +171,7 @@ CONSTANT_VAL:
     ;
 
 switch_stmt:
-    SWITCH LPAREN IDENTIFIER RPAREN LBRACE case_list default_case RBRACE
+    SWITCH LPAREN IDENTIFIER RPAREN LBRACE {enterScope();} case_list default_case RBRACE {exitScope();}
     ;
 
 case_list:
@@ -327,13 +327,14 @@ primary_expr:
 ;
 
 repeat_stmt:
-    REPEAT LBRACE statement_list RBRACE UNTIL LPAREN expression RPAREN SEMI
+    REPEAT LBRACE {enterScope();} statement_list RBRACE {exitScope();} UNTIL LPAREN expression RPAREN SEMI
     ;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE {
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();} statement_list RBRACE {
+        exitScope();
         Value myValue;
-        addSymbol($3, $2, true, myValue, false, true, $5);  //remove return type use el type w addlo void
+        addSymbol($3, $2, true, myValue, false, true, $5);  
     }
     ;
 
