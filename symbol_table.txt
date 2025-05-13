@@ -12,6 +12,7 @@ Name: add, Type: int (0), Value: N/A, Const: 0, Initialized: 1, Used: 0, IsFunct
 === Scope Level: 1 ===
 Name: x, Type: int (0), Value: 0, Const: 0, Initialized: 1, Used: 0, IsFunction: 0, Params: N/A
 Name: m, Type: int (0), Value: N/A, Const: 0, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
+Name: s, Type: int (0), Value: N/A, Const: 0, Initialized: 0, Used: 0, IsFunction: 0, Params: N/A
 
 === Scope Level: 2 ===
 
