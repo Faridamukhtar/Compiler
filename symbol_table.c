@@ -1,9 +1,12 @@
 #include "symbol_table.h"
+#include "error_handler.h"
+
 Scope *currentScope = NULL;
 Scope *allScopes[1000];     
 int scopeCount = 0;    
 int scope_depth = 0;  // Add scope depth tracking
 
+extern int prev_valid_line;
 
 void initSymbolTable() {
     if (currentScope == NULL) {
