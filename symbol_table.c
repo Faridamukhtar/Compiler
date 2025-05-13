@@ -1,6 +1,4 @@
 #include "symbol_table.h"
-#include "error_handler.h"
-
 Scope *currentScope = NULL;
 Scope *allScopes[1000];     
 int scopeCount = 0;    
@@ -49,12 +47,14 @@ void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isC
     }
 
     if (name == NULL || type == NULL) {
-        printf("Error: Invalid parameters missing name\n");
+        report_error(SEMANTIC_ERROR, "Invalid Parameters", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Symbol name or type is NULL.\n", prev_valid_line);
         return NULL;
     }
 
     if (isSymbolDeclaredInCurrentScope(name)) {
-        printf("Error: Identifier '%s' is already defined in the current scope\n", name);
+        report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Identifier '%s' is already defined in the current scope.\n", prev_valid_line, name);
         return NULL;
     }
 
@@ -109,10 +109,13 @@ SymbolTableEntry *lookupSymbol(char *name) {
 int updateSymbolValue(char *name, Value newValue) {
     SymbolTableEntry *symbol = lookupSymbol(name);
     if (symbol == NULL) {
+        report_error(SEMANTIC_ERROR, "Undeclared Variable", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Variable '%s' is not declared.\n", prev_valid_line, name);
         return -1;
     }
     if (symbol->isConst && symbol->isInitialized) {
-        printf("Error: Cannot update value of constant symbol '%s'.\n", name);
+        report_error(SEMANTIC_ERROR, "Constant Reassignment", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Cannot update value of constant symbol '%s'.\n", prev_valid_line, name);
         return 0;
     }
     symbol->value = newValue;
@@ -140,7 +143,7 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
         while (symbol != NULL) {
             char valueStr[256] = "N/A";
 
-            if (symbol->isInitialized && symbol->isFunction ==false) {
+            if (symbol->isInitialized && symbol->isFunction == false) {
                 switch (symbol->type) {
                     case INT_TYPE:
                         sprintf(valueStr, "%d", symbol->value.iVal);
@@ -207,7 +210,8 @@ ValueType mapStringToValueType(const char *typeStr) {
     if (strcmp(typeStr, "char") == 0) return CHAR_TYPE;
     if (strcmp(typeStr, "void") == 0) return VOID_TYPE;
 
-    fprintf(stderr, "Unknown type string: '%s'\n", typeStr);
+    report_error(SEMANTIC_ERROR, "Unknown Type", prev_valid_line);
+    fprintf(stderr, "Semantic Error (line %d): Unknown type string '%s'.\n", prev_valid_line, typeStr);
     exit(EXIT_FAILURE);
 }
 
