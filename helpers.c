@@ -63,8 +63,31 @@ void free_split_result(char** result, int count) {
     free(result);
 }
 
+
 bool areTypesCompatible(ValueType t1, ValueType t2) {
     if ((t1 == INT_TYPE || t1 == FLOAT_TYPE) && (t2 == INT_TYPE || t2 == FLOAT_TYPE)) return true;
     return t1 == t2;
+}
+
+
+char* concat_with_comma(const char* str1, const char* str2) {
+    if (!str1 || !str2) {
+        return NULL;
+    }
+
+    size_t len1 = strlen(str1);
+    size_t len2 = strlen(str2);
+    size_t total_len = len1 + len2 + 2;
+
+    char* result = (char*)malloc(total_len);
+    if (!result) {
+        return NULL;
+    }
+
+    strcpy(result, str1);
+    strcat(result, ",");
+    strcat(result, str2);
+
+    return result;
 }
 

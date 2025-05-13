@@ -4,6 +4,8 @@ lex.yy.h
 parser.tab.c
 parser.tab.h
 parser
+compiler
+symbol_table.txt
 
 # Compiled files
 *.o

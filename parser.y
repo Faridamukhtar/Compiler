@@ -91,7 +91,7 @@ statement:
     | function_call SEMI
     | CONTINUE SEMI
     | BREAK SEMI
-    | LBRACE statement_list RBRACE
+    | LBRACE {enterScope();}  statement_list RBRACE {exitScope();}
     | declaration error {
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
@@ -161,7 +161,11 @@ declaration:
 
 identifier_list:
     IDENTIFIER
+    {$$ = $1;}
     | identifier_list COMMA IDENTIFIER
+    {
+        $$ = concat_with_comma($1,$3);
+    }
     | identifier_list COMMA error {
         report_error(SYNTAX_ERROR, "Expected an identifier", prev_valid_line);
         yyerrok;
@@ -527,7 +531,15 @@ primary_expr:
     }
     | STRING {
         Value val;
-        val.sVal = strdup($1); 
+        size_t len = strlen($1);
+        if (len >= 2) {
+            char* cropped = (char*)malloc(len - 1); 
+            strncpy(cropped, $1 + 1, len - 2);
+            cropped[len - 2] = '\0'; 
+            val.sVal = cropped;
+        } else {
+            val.sVal = strdup(""); 
+        }
         $$ = (expr){.type = STRING_TYPE, .value = val};
     }
     | LPAREN expression RPAREN {
@@ -574,10 +586,13 @@ repeat_stmt:
     ;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();} statement_list RBRACE {
-        exitScope();
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN {
         Value myValue;
-        addSymbol($3, $2, true, myValue, false, true, $5);
+        addSymbol($3, $2, true, myValue, false, true, $5); 
+        enterScope();
+        addParamsToSymbolTable($5);
+    } LBRACE statement_list RBRACE {
+        exitScope();
     }
     /* | FUNCTION error {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
@@ -594,8 +609,12 @@ function_decl:
     ;
 
 function_call:
-    IDENTIFIER LPAREN argument_list RPAREN
-    | IDENTIFIER LPAREN RPAREN
+    IDENTIFIER LPAREN argument_list RPAREN {
+        SymbolTableEntry *entry = lookupSymbol($1);
+    }
+    | IDENTIFIER LPAREN RPAREN {
+        SymbolTableEntry *entry = lookupSymbol($1);
+    }
     /* | IDENTIFIER error {
         report_error(SYNTAX_ERROR, "Expected '(' in function call", prev_valid_line);
         yyerrok;
@@ -612,13 +631,13 @@ argument_list:
     ;
 
 params:
-    /* empty */
+    /* empty */ { $$ = NULL; }
     | param_list { $$ = $1; }
     ;
 
 param_list:
     param_list COMMA param {
-        $$ = addParameter($1, $3);  // Add the parameter to the list
+        $$ = addParameter($1, $3);
     }
     | param {
         $$ = $1;
@@ -627,9 +646,7 @@ param_list:
 
 param:
     TYPE IDENTIFIER {
-        Value myValue;
-        addSymbol($2, $1, false, myValue, true, false, NULL);
-        $$ = createParameter($2, $1);  // Create a new parameter
+        $$ = createParameter($2, $1);
     }
     ;
 
@@ -654,7 +671,17 @@ int main() {
         yyin = input;
         yylineno = 1;
         int result = yyparse();
-        fclose(input);
+
+        FILE *output = fopen("symbol_table.txt", "w");
+        if (output) {
+            writeSymbolTableOfAllScopesToFile(output);
+            fclose(output);
+        } else {
+            printf("Failed to open symbol_table.txt for writing.\n");
+        }
+
+        reportUnusedVariables();
+
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
 
@@ -663,14 +690,7 @@ int main() {
         } else {
             printf("Parsing successful!\n");
         }
-        FILE *output = fopen("symbol_table.txt", "w");
-        if (output) {
-            writeSymbolTableOfAllScopesToFile(output);
-            fclose(output);
-        } else {
-            printf("Failed to open symbol_table.txt for writing.\n");
-        }
-        reportUnusedVariables();
+
         fclose(input);
         clearSymbolTables(currentScope);
     } else {

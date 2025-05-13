@@ -251,6 +251,25 @@ void handlePrefixInc(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
+void addParamsToSymbolTable(const Parameter* head) {
+    const Parameter* param = head;
+    while (param) {
+        if (!param->name || !param->type) {
+            fprintf(stderr, "Error: Invalid parameter with missing name or type\n");
+            return;
+        }
+
+        if (isSymbolDeclaredInCurrentScope(param->name)) {
+            fprintf(stderr, "Semantic Error: Parameter '%s' already declared in this scope.\n", param->name);
+        } else {
+            Value val;
+            addSymbol(param->name, param->type, true, val, false, false, NULL);
+        }
+
+        param = param->next;
+    }
+}
+
 
 void reportUnusedVariables() {
     for (int i = 0; i < scopeCount; i++) {

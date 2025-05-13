@@ -70,6 +70,7 @@ void handlePostfixDec(char *identifier);
 
 // Function to handle prefix increment (INC IDENTIFIER)
 void handlePrefixInc(char *identifier);
+void addParamsToSymbolTable(const Parameter* head);
 
 void reportUnusedVariables();
 
