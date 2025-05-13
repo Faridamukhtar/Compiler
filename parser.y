@@ -605,13 +605,20 @@ int main() {
     printf("Starting parser...\n");
     FILE *input = fopen("test/input.txt", "r");
     initSymbolTable(); // Add this line
-    FILE *input = fopen("input.txt", "r");
     if (input) {
         yyin = input;
         yylineno = 1;
         int result = yyparse();
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
+
+        FILE *output = fopen("symbol_table.txt", "w");
+        if (output) {
+            writeSymbolTableOfAllScopesToFile(output);
+            fclose(output);
+        } else {
+            printf("Failed to open symbol_table.txt for writing.\n");
+        }
 
         if (get_error_count() > 0) {
             printf("Parsing failed with errors.\n");
@@ -621,13 +628,7 @@ int main() {
             return 0;
         }
         
-        FILE *output = fopen("symbol_table.txt", "w");
-        if (output) {
-            writeSymbolTableOfAllScopesToFile(output);
-            fclose(output);
-        } else {
-            printf("Failed to open symbol_table.txt for writing.\n");
-        }
+       
         // reportUnusedVariables();
         // reportUninitializedVariables();
         fclose(input);
