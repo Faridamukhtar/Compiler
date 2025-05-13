@@ -91,7 +91,7 @@ statement:
     | function_call SEMI
     | CONTINUE SEMI
     | BREAK SEMI
-    | LBRACE statement_list RBRACE
+    | LBRACE {enterScope();}  statement_list RBRACE {exitScope();}
     | declaration error {
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
@@ -468,7 +468,15 @@ primary_expr:
     }
     | STRING {
         Value val;
-        val.sVal = strdup($1); 
+        size_t len = strlen($1);
+        if (len >= 2) {
+            char* cropped = (char*)malloc(len - 1); 
+            strncpy(cropped, $1 + 1, len - 2);
+            cropped[len - 2] = '\0'; 
+            val.sVal = cropped;
+        } else {
+            val.sVal = strdup(""); 
+        }
         $$ = (expr){.type = STRING_TYPE, .value = val};
     }
     | LPAREN expression RPAREN {
@@ -511,7 +519,9 @@ repeat_stmt:
     ;
 
 function_decl:
-    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();} statement_list RBRACE {
+    FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {enterScope();
+        addParamsToSymbolTable($5);
+    } statement_list RBRACE {
         exitScope();
         Value myValue;
         addSymbol($3, $2, true, myValue, false, true, $5);
@@ -555,7 +565,7 @@ params:
 
 param_list:
     param_list COMMA param {
-        $$ = addParameter($1, $3);  // Add the parameter to the list
+        $$ = addParameter($1, $3);
     }
     | param {
         $$ = $1;
@@ -564,9 +574,7 @@ param_list:
 
 param:
     TYPE IDENTIFIER {
-        Value myValue;
-        addSymbol($2, $1, false, myValue, true, false, NULL);
-        $$ = createParameter($2, $1);  // Create a new parameter
+        $$ = createParameter($2, $1);
     }
     ;
 
@@ -591,7 +599,15 @@ int main() {
         yyin = input;
         yylineno = 1;
         int result = yyparse();
-        fclose(input);
+
+        FILE *output = fopen("symbol_table.txt", "w");
+        if (output) {
+            writeSymbolTableOfAllScopesToFile(output);
+            fclose(output);
+        } else {
+            printf("Failed to open symbol_table.txt for writing.\n");
+        }
+
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
 
@@ -600,13 +616,7 @@ int main() {
         } else {
             printf("Parsing successful!\n");
         }
-        FILE *output = fopen("symbol_table.txt", "w");
-        if (output) {
-            writeSymbolTableOfAllScopesToFile(output);
-            fclose(output);
-        } else {
-            printf("Failed to open symbol_table.txt for writing.\n");
-        }
+
         // reportUnusedVariables();
         // reportUninitializedVariables();
         fclose(input);

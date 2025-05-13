@@ -1,4 +1,5 @@
 const int x = 5;
+int y =5 ;
 y++;    
 ++y;
 int z =0;
@@ -18,3 +19,23 @@ if (x==y) {
 function int add(int a, int b) {
     return a + b;
 }
+
+{
+    int x=0;
+    int m,x,s; 
+}
+
+/*
+function void main() {
+    int num;
+    print("Enter a number: ");
+    if (num < 0){
+        print("Negative numbers are not allowed.");
+    }
+    else
+    {
+        print("Factorial of ", num, " is ", factorial(num));
+        print("Multiplication table for ", num, ":");
+        print_table(num);
+    }
+}*/

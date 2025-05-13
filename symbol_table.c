@@ -251,6 +251,46 @@ void handlePrefixInc(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
+void addParamsToSymbolTable(const Parameter* head) {
+    const Parameter* current = head;
+
+    while (current != NULL) {
+        Value defaultValue;
+
+        addSymbol(
+            current->name,
+            current->type,
+            false,          
+            defaultValue,   
+            false,          
+            false,          
+            NULL            
+        );
+
+        current = current->next;
+    }
+}
+
+void handleFunctionCall(char *fnName, Value *args, int argCount) {
+
+    SymbolTableEntry *fnEntry = lookupSymbol(fnName);
+
+    if (fnEntry == NULL) {
+        fprintf(stderr, "Error: Function '%s' is not declared.\n", fnName);
+        exit(EXIT_FAILURE);
+    }
+
+    if (!fnEntry->isFunction) {
+        fprintf(stderr, "Error: '%s' is not a function.\n", fnName);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Function '%s' found successfully!\n", fnName);
+
+    // (Next step: Check parameters & update the params --> re-enter the scope)
+}
+
+
 
 // void reportUnusedVariables() {
 //     for (int i = 0; i < scopeCount; i++) {
