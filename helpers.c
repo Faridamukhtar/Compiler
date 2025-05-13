@@ -62,10 +62,13 @@ void free_split_result(char** result, int count) {
     }
     free(result);
 }
+
+
 bool areTypesCompatible(ValueType t1, ValueType t2) {
     if ((t1 == INT_TYPE || t1 == FLOAT_TYPE) && (t2 == INT_TYPE || t2 == FLOAT_TYPE)) return true;
     return t1 == t2;
 }
+
 
 char* concat_with_comma(const char* str1, const char* str2) {
     if (!str1 || !str2) {
@@ -87,3 +90,4 @@ char* concat_with_comma(const char* str1, const char* str2) {
 
     return result;
 }
+
