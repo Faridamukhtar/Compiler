@@ -3,6 +3,8 @@
 
 #define MAX_QUADS 1000
 
+// This header is used by both the IR and the assembly generator
+
 typedef enum {
     OP_ADD,
     OP_SUB,
@@ -48,5 +50,8 @@ char *new_label();
 void print_quadruples();
 void free_quadruples();
 const char* get_op_string(OpType op);
+
+// Assembly conversion
+void convert_quadruples_to_assembly(const char *filename);
 
 #endif

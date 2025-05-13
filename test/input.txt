@@ -34,5 +34,6 @@ for (int i =0 ; i<5 ; i++) {
 while (x==y) {
     int x = 5;
     int y =6;
+}
 
 x = add(5,6);

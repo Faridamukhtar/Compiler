@@ -85,3 +85,6 @@ void free_quadruples() {
     }
     quad_count = 0;
 }
+
+// External declaration of the function implemented in quad_to_asm.c
+extern void convert_quadruples_to_assembly(const char *filename);

@@ -9,6 +9,7 @@
 #include "parameter.h"
 #include "error_handler.h"
 #include "quadruple.h"
+#include "quad_to_asm.h"
 
 extern int yylex();
 extern int yyparse();
@@ -1647,6 +1648,7 @@ int main() {
             printf("Parsing successful!\n");
             print_quadruples();
 
+            // Write quadruples to file
             FILE *quad_output = fopen("quadruples.txt", "w");
             if (quad_output) {
                 fprintf(quad_output, "=== Generated Quadruples ===\n");
@@ -1660,9 +1662,11 @@ int main() {
                 }
                 fclose(quad_output);
                 printf("Quadruples written to quadruples.txt\n");
-            } else {
-                printf("Failed to open quadruples.txt for writing.\n");
             }
+
+            // Convert quadruples to assembly
+            convert_quadruples_to_assembly("output.asm");
+            printf("Assembly code written to output.asm\n");
         }
 
         FILE *output = fopen("symbol_table.txt", "w");
@@ -1670,8 +1674,6 @@ int main() {
             writeSymbolTableOfAllScopesToFile(output);
             fclose(output);
             printf("Symbol table written to symbol_table.txt\n");
-        } else {
-            printf("Failed to open symbol_table.txt for writing.\n");
         }
         
         fclose(input);
