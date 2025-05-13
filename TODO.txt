@@ -2,6 +2,8 @@ MIRA/FOFAA
 1. fix unused
 2. constant
 3. functions
+4. GUI
+5. is string copy pointer or copy mem ?   
 
 Monmon and Fofa
 1. Nezabat kol el syntax errors el fadlaaa

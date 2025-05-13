@@ -15,6 +15,9 @@ extern int yylex();
 extern int yyparse();
 extern int prev_valid_line;
 
+SymbolTableEntry* currentFunction = NULL;
+ValueType currentFunctionReturnType = VOID_TYPE;
+
 void yyerror(const char *s);
 
 // Track current loop labels for break/continue
@@ -105,6 +108,7 @@ char *default_label = NULL;
 %type <expr> CONSTANT_VAL
 %type <temp_var> function_call
 %type <void_val> statement_list case_list default_case
+%type <param_list> argument_list
 
 /* Define operator precedence */
 %left OR
@@ -783,6 +787,17 @@ default_case:
 return_stmt:
     RETURN expression {
         /* Generate return quadruple */
+        if (currentFunctionReturnType == VOID_TYPE) {
+            report_error(SEMANTIC_ERROR, "Void Function Return Value", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Void function '%s' should not return a value.\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        } else if (!areTypesCompatible(currentFunctionReturnType, $2.type)) {
+            report_error(SEMANTIC_ERROR, "Return Type Mismatch", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Return type mismatch in function '%s'.\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        }
         if ($2.temp_var) {
             add_quadruple(OP_RETURN, $2.temp_var, NULL, NULL);
         } else {
@@ -813,6 +828,12 @@ return_stmt:
         
     }
     | RETURN {
+        if (currentFunctionReturnType != VOID_TYPE) {
+            report_error(SEMANTIC_ERROR, "Missing Return Value", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' must return nothing (void).\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        }
         /* Generate empty return quadruple */
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
     }
@@ -1545,6 +1566,7 @@ primary_expr:
         $$ = $2; 
     }
     | function_call {
+        //TODO: FIX THIS -> MIRA: $$ = $1; 
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true, .temp_var = $1};
     }
     | IDENTIFIER {
@@ -1613,6 +1635,8 @@ function_decl:
         Value myValue;
         myValue.iVal = 0;  // Initialize with a default value
         addSymbol($3, $2, true, myValue, false, true, $5); 
+        currentFunction = lookupSymbol($3);
+        currentFunctionReturnType = mapStringToValueType($2);
         enterScope();
         addParamsToSymbolTable($5);
         add_quadruple(OP_LABEL, $3, NULL, NULL);
@@ -1637,6 +1661,19 @@ function_decl:
 
 function_call:
     IDENTIFIER LPAREN argument_list RPAREN {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry || !entry->isFunction) {
+            report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
+            $$ = (expr){.type = BOOL_TYPE};
+        } else {
+            entry->isUsed = true;
+            if (!compareParameters(entry->params, $3)) {
+                report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Arguments passed to function '%s' do not match its definition.\n", prev_valid_line, $1);
+            }
+            $$ = (expr){.type = entry->type, .value = (Value){}};
+        }
         /* Generate function call quadruple */
         char *result = new_temp();
         add_quadruple(OP_CALL, $1, NULL, result);
@@ -1645,6 +1682,19 @@ function_call:
         $<temp_var>$ = result;
     }
     | IDENTIFIER LPAREN RPAREN {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry || !entry->isFunction) {
+            report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
+            $$ = (expr){.type = BOOL_TYPE};
+        } else {
+            entry->isUsed = true;
+            if (entry->params != NULL) {
+                report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Function '%s' expects arguments, but none were given.\n", prev_valid_line, $1);
+            }
+            $$ = (expr){.type = entry->type, .value = (Value){}};
+        }
         /* Generate function call quadruple with no arguments */
         char *result = new_temp();
         add_quadruple(OP_CALL, $1, NULL, result);
@@ -1652,6 +1702,10 @@ function_call:
         /* Store result in a temporary var for later use */
         $<temp_var>$ = result;
     }
+    /* | IDENTIFIER error {
+        report_error(SYNTAX_ERROR, "Expected '(' in function call", prev_valid_line);
+        yyerrok;
+    } */
     | IDENTIFIER LPAREN error {
         report_error(SYNTAX_ERROR, "Expected ')' in function call", prev_valid_line);
         yyerrok;
@@ -1660,6 +1714,9 @@ function_call:
 
 argument_list:
     argument_list COMMA expression {
+        const char* t = typeToString($3.type);
+        Parameter* arg = createParameter("arg", strdup(t));
+        $$ = addParameter($1, arg);
         /* Generate parameter passing quadruple */
         if ($3.temp_var) {
             add_quadruple(OP_PARAM, $3.temp_var, NULL, NULL);
@@ -1679,6 +1736,8 @@ argument_list:
         }
     }
     | expression {
+        const char* t = typeToString($1.type);
+        $$ = createParameter("arg", strdup(t));
         /* Generate parameter passing quadruple */
         if ($1.temp_var) {
             add_quadruple(OP_PARAM, $1.temp_var, NULL, NULL);
@@ -1746,7 +1805,13 @@ const_decl:
         Value myValue = $5.value;
         addSymbol($3, $2, true, myValue, true, false, NULL);
     }
+    | CONST IDENTIFIER ASSIGN expression {
+        report_error(SEMANTIC_ERROR, "Missing Type", prev_valid_line);
+        fprintf(stderr, "Semantic Error (line %d): Constant '%s' declared without a type.\n", prev_valid_line, $2);
+        // exit(1);
+    }
     ;
+
 
 %%
 

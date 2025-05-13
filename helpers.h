@@ -11,4 +11,6 @@ bool areTypesCompatible(ValueType t1, ValueType t2);
 
 char* concat_with_comma(const char* str1, const char* str2);
 
+const char* typeToString(ValueType type);
+
 #endif // SPLIT_H
