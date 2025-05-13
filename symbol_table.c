@@ -1,12 +1,12 @@
 #include "symbol_table.h"
 #include "error_handler.h"
 
-extern int prev_valid_line;
-
 Scope *currentScope = NULL;
 Scope *allScopes[1000];     
 int scopeCount = 0;    
+int scope_depth = 0;  // Add scope depth tracking
 
+extern int prev_valid_line;
 
 void initSymbolTable() {
     if (currentScope == NULL) {
@@ -29,8 +29,19 @@ void enterScope() {
     scopeCount++;
 }
 
+void addScope()
+{
+    scope_depth++;  // Increment scope depth
+}
+
+
+void removeScope()
+{
+    scope_depth--;  // Decrement scope depth
+}
+
 void exitScope() {
-    currentScope = currentScope->parent;  
+    currentScope = currentScope->parent;
 }
 
 void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params) {
@@ -271,7 +282,7 @@ void addParamsToSymbolTable(const Parameter* head) {
         if (isSymbolDeclaredInCurrentScope(param->name)) {
             fprintf(stderr, "Semantic Error: Parameter '%s' already declared in this scope.\n", param->name);
         } else {
-            Value val;
+            Value val = {0};
             addSymbol(param->name, param->type, true, val, false, false, NULL);
         }
 
@@ -279,6 +290,36 @@ void addParamsToSymbolTable(const Parameter* head) {
     }
 }
 
+void handleFunctionCall(char *fnName, Value *args, int argCount) {
+
+    SymbolTableEntry *fnEntry = lookupSymbol(fnName);
+
+    if (fnEntry == NULL) {
+        fprintf(stderr, "Error: Function '%s' is not declared.\n", fnName);
+        exit(EXIT_FAILURE);
+    }
+
+    if (!fnEntry->isFunction) {
+        fprintf(stderr, "Error: '%s' is not a function.\n", fnName);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Function '%s' found successfully!\n", fnName);
+
+    // (Next step: Check parameters & update the params --> re-enter the scope)
+}
+
+
+void checkUnclosedScopes(int yylineno) 
+{
+    if (scope_depth > 0) {
+        report_error(SYNTAX_ERROR, "Unclosed scope(s) at end of file", yylineno);
+
+    }
+    else if (scope_depth < 0) {
+        report_error(SYNTAX_ERROR, "Scope Mismatch ", yylineno);
+    }
+}
 
 void reportUnusedVariables() {
     for (int i = 0; i < scopeCount; i++) {
