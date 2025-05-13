@@ -1,40 +1,37 @@
 #include "symbol_table.h"
 
 Scope *currentScope = NULL;
+Scope *allScopes[1000];     
+int scopeCount = 0;    
+
 
 void initSymbolTable() {
     if (currentScope == NULL) {
         currentScope = (Scope *)malloc(sizeof(Scope));
         currentScope->symbols = NULL;
         currentScope->parent = NULL;
+
+        allScopes[scopeCount] = currentScope;
+        scopeCount++;
     }
 }
+
 
 void enterScope() {
     Scope *newScope = (Scope *)malloc(sizeof(Scope));
     newScope->symbols = NULL;
     newScope->parent = currentScope;
     currentScope = newScope;
+
+    allScopes[scopeCount] = newScope;
+    scopeCount++;
 }
+
 
 void exitScope() {
-    Scope *temp = currentScope;
-    currentScope = currentScope->parent;
-
-    // Free all symbols in the current scope
-    SymbolTableEntry *symbol = temp->symbols;
-    while (symbol != NULL) {
-        SymbolTableEntry *nextSymbol = symbol->next;
-        free(symbol->identifierName);
-        if (symbol->returnType) {
-            free(symbol->returnType);
-        }
-        free(symbol);
-        symbol = nextSymbol;
-    }
-
-    free(temp);
+    currentScope = currentScope->parent;  
 }
+
 
 void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isConst, bool isFunction, Parameter *params, char *returnType) {
     if (currentScope == NULL) {
@@ -126,16 +123,14 @@ bool isSymbolDeclaredInCurrentScope(char *name) {
 }
 
 void writeSymbolTableOfAllScopesToFile(FILE *file) {
-    Scope *scope = currentScope;
-    int scopeLevel = 0;
+    for (int i = 0; i < scopeCount; i++) {
+        Scope *scope = allScopes[i];
+        fprintf(file, "=== Scope Level: %d ===\n", i);
 
-    while (scope != NULL) {
-        fprintf(file, "=== Scope Level: %d ===\n", scopeLevel);
         SymbolTableEntry *symbol = scope->symbols;
         while (symbol != NULL) {
-            // Get value as string
             char valueStr[256] = "N/A";
-            symbol->isInitialized=true;
+
             if (symbol->isInitialized) {
                 switch (symbol->type) {
                     case INT_TYPE:
@@ -162,7 +157,7 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
                     "Name: %s, Type: %s (%d), Value: %s, ReturnType: %s, Const: %d, Initialized: %d, Used: %d, IsFunction: %d\n",
                     symbol->identifierName,
                     valueTypeToString(symbol->type),
-                    symbol->type, // enum value as int
+                    symbol->type,
                     valueStr,
                     symbol->isFunction && symbol->returnType ? symbol->returnType : "N/A",
                     symbol->isConst,
@@ -170,11 +165,11 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
                     symbol->isUsed,
                     symbol->isFunction
             );
+
             symbol = symbol->next;
         }
 
-        scope = scope->parent;
-        scopeLevel++;
+        fprintf(file, "\n");
     }
 }
 
@@ -239,7 +234,6 @@ void handlePostfixDec(char *identifier) {
     updateSymbolValue(identifier, entry->value);
 }
 
-// INC IDENTIFIER (prefix increment)
 void handlePrefixInc(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {

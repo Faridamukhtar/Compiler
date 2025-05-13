@@ -395,7 +395,7 @@ multiplicative_expr:
     }
     | exponent_expr {
         $$ = $1; // TODO: propagate exponent
-        printf("3nd el multiplicative %d \n" , $1.value.iVal);
+        // printf("3nd el multiplicative %d \n" , $1.value.iVal);
     }
     ;
 
@@ -406,7 +406,7 @@ exponent_expr:
     }
     | unary_expr {
         $$ = $1; // TODO: propagate unary
-         printf("3nd el exponent %d \n" , $1.value.iVal);
+        //  printf("3nd el exponent %d \n" , $1.value.iVal);
     }
     ;
 
@@ -417,7 +417,9 @@ unary_expr:
     | NOT unary_expr {
         $$ = (expr){.type = BOOL_TYPE, .value.bVal = true};
     }
-    | primary_expr { $$ = $1;  printf("3nd el unary %d" , $1.value.iVal);}
+    | primary_expr { $$ = $1;  
+        // printf("3nd el unary %d" , $1.value.iVal);
+    }
     ;
 
 primary_expr:
