@@ -1665,14 +1665,14 @@ function_call:
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            $$ = (expr){.type = BOOL_TYPE};
+            /* $$ = (expr){.type = BOOL_TYPE}; */
         } else {
             entry->isUsed = true;
             if (!compareParameters(entry->params, $3)) {
                 report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
                 fprintf(stderr, "Semantic Error (line %d): Arguments passed to function '%s' do not match its definition.\n", prev_valid_line, $1);
             }
-            $$ = (expr){.type = entry->type, .value = (Value){}};
+            /* $$ = (expr){.type = entry->type, .value = (Value){}}; */
         }
         /* Generate function call quadruple */
         char *result = new_temp();
@@ -1686,14 +1686,14 @@ function_call:
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            $$ = (expr){.type = BOOL_TYPE};
+            //$$ = (expr){.type = BOOL_TYPE};
         } else {
             entry->isUsed = true;
             if (entry->params != NULL) {
                 report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
                 fprintf(stderr, "Semantic Error (line %d): Function '%s' expects arguments, but none were given.\n", prev_valid_line, $1);
             }
-            $$ = (expr){.type = entry->type, .value = (Value){}};
+           // $$ = (expr){.type = entry->type, .value = (Value){}};
         }
         /* Generate function call quadruple with no arguments */
         char *result = new_temp();

@@ -9,8 +9,8 @@ _start:
     mov dword [x], 5
     mov dword [y], 5
     mov dword [z], 0
-    mov dword [t], false
     mov dword [c], true
+    mov dword [t], 3.140000
     mov dword [m], "mimo"
     mov dword [m], "zozi"
     mov dword [x], 0

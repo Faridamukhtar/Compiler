@@ -1,0 +1,58 @@
+int x = 5;
+int y = 5;
+y++;    
+++y;
+int z =0;
+z--;
+--z;
+bool c = true;
+float t=3.14;
+string m ="mimo";
+m="zozi";
+
+if (x==y) {
+    int x=0;
+    int m,f,s;
+}
+
+else {
+    int y = 0;
+    if (x!=y){
+        int z =0;
+    }
+}
+
+function int add(int a, int b) {
+    return a + b;
+}
+
+for (int i =0 ; i<5 ; i++) {
+    int x = 5;
+    int y =6;
+}
+
+while (x==y) {
+    int x = 5;
+    int y =6;
+}
+
+repeat {
+    int x = 5;
+    int y =6;
+}
+until (x!=y);
+
+x = 3.14;
+
+
+switch (x) {
+    case 1:
+        int x = 5;
+        break;
+    case 2:
+        int y = 6;
+        break;
+    default:
+        int z = 7;
+        break;
+}
