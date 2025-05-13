@@ -212,7 +212,7 @@ const char *valueTypeToString(ValueType type) {
 void handlePostfixDec(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {
-        printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
+        // printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
         return;
     }
 
@@ -233,7 +233,7 @@ void handlePostfixDec(char *identifier) {
 void handlePrefixInc(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {
-        printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
+        // printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
         return;
     }
 
@@ -271,28 +271,15 @@ void addParamsToSymbolTable(const Parameter* head) {
 }
 
 
-// void reportUnusedVariables() {
-//     for (int i = 0; i < scopeCount; i++) {
-//         Scope *scope = allScopes[i];
-//         SymbolTableEntry *symbol = scope->symbols;
-//         while (symbol != NULL) {
-//             if (!symbol->isUsed && !symbol->isFunction) {
-//                 printf("Warning: Variable '%s' declared in scope %d but never used.\n", symbol->identifierName, i);
-//             }
-//             symbol = symbol->next;
-//         }
-//     }
-// }
-
-// void reportUninitializedVariables() {
-//     for (int i = 0; i < scopeCount; i++) {
-//         Scope *scope = allScopes[i];
-//         SymbolTableEntry *symbol = scope->symbols;
-//         while (symbol != NULL) {
-//             if (symbol->isUsed && !symbol->isInitialized && !symbol->isFunction) {
-//                 printf("Warning: Variable '%s' used in scope %d but never initialized.\n", symbol->identifierName, i);
-//             }
-//             symbol = symbol->next;
-//         }
-//     }
-// }
+void reportUnusedVariables() {
+    for (int i = 0; i < scopeCount; i++) {
+        Scope *scope = allScopes[i];
+        SymbolTableEntry *symbol = scope->symbols;
+        while (symbol != NULL) {
+            if (!symbol->isUsed && !symbol->isFunction) {
+                printf("Warning: Variable '%s' declared in scope %d but never used.\n", symbol->identifierName, i);
+            }
+            symbol = symbol->next;
+        }
+    }
+}

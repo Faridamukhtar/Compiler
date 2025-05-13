@@ -130,6 +130,7 @@ declaration:
             Value myvalue;
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
+                    report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
                     fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, result[i]);
                 } else {
                     addSymbol(result[i], $1, false, myvalue, false, false, NULL);
@@ -142,6 +143,7 @@ declaration:
     }
     | TYPE IDENTIFIER ASSIGN expression {
         if (isSymbolDeclaredInCurrentScope($2)) {
+            report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, $2);
         } else {
             addSymbol($2, $1, true , $4.value, false, false, NULL);
@@ -172,40 +174,77 @@ identifier_list:
 
 assignment:
     IDENTIFIER INC {
-        if (!lookupSymbol($1)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+           report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
+            handlePrefixInc($1);
         }
-        handlePrefixInc($1);
     }
     | IDENTIFIER DEC {
-        if (!lookupSymbol($1)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
+            handlePostfixDec($1);
         }
-        handlePostfixDec($1);
     }
     | INC IDENTIFIER {
-        if (!lookupSymbol($2)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
+        SymbolTableEntry *entry = lookupSymbol($2);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
+            }
+            handlePrefixInc($2);
         }
-        handlePrefixInc($2);
     }
     | DEC IDENTIFIER {
-        if (!lookupSymbol($2)) {
-            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
+        SymbolTableEntry *entry = lookupSymbol($2);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
+        } 
+        else {
+            if (!entry->isInitialized) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
+            }
+            handlePostfixDec($2);
         }
-        handlePostfixDec($2);
     }
     | IDENTIFIER ASSIGN expression {
-        if (!lookupSymbol($1)) {
+        SymbolTableEntry *entry = lookupSymbol($1);
+        if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
-            // YYABORT;
+        } else {
+            if (!areTypesCompatible(entry->type, $3.type)) {
+                report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+                fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $1);
+            }
+            else {
+                updateSymbolValue($1, $3.value);
+            }
         }
-        updateSymbolValue($1, $3.value);
     }
+
     | IDENTIFIER ASSIGN error {
         report_error(SYNTAX_ERROR, "Expected an expression", prev_valid_line);
         yyerrok;
@@ -408,9 +447,17 @@ relational_expr:
 
 additive_expr:
     additive_expr PLUS multiplicative_expr {
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in addition.\n", prev_valid_line);
+        }
         $$ = $1;
     }
     | additive_expr MINUS multiplicative_expr {
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in subtraction.\n", prev_valid_line);
+        }
         $$ = $1;
     }
     | multiplicative_expr {
@@ -420,9 +467,17 @@ additive_expr:
 
 multiplicative_expr:
     multiplicative_expr MUL exponent_expr {
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in multiplication.\n", prev_valid_line);
+        }
         $$ = $1;
     }
     | multiplicative_expr DIV exponent_expr {
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in division.\n", prev_valid_line);
+        }
         $$ = $1;
     }
     | exponent_expr {
@@ -432,6 +487,10 @@ multiplicative_expr:
 
 exponent_expr:
     exponent_expr EXP unary_expr {
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in exponentiation.\n", prev_valid_line);
+        }
         $$ = $1;
     }
     | unary_expr {
@@ -492,13 +551,17 @@ primary_expr:
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);
         if (!entry) {
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         }
-        if (!entry->isInitialized) {
-            fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+        else {
+            if (!entry->isInitialized  && !entry->isFunction) {
+                fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
+            }
+            entry->isUsed = true;
+            $$ = (expr){.type = entry->type, .value = entry->value};
         }
-        $$ = (expr){.type = entry->type, .value = entry->value};
     }
     ;
 
@@ -617,6 +680,8 @@ int main() {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
 
+        reportUnusedVariables();
+
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
 
@@ -626,8 +691,6 @@ int main() {
             printf("Parsing successful!\n");
         }
 
-        // reportUnusedVariables();
-        // reportUninitializedVariables();
         fclose(input);
         clearSymbolTables(currentScope);
     } else {
