@@ -12,13 +12,13 @@ from PyQt5.Qsci import QsciScintilla, QsciLexerCPP
 class CompilerGUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("💖 Compiler Frontend")
+        self.setWindowTitle("Compiler Frontend")
         self.resize(1000, 700)
 
-        # Pastel theme styling
+        # Pastel theme styling with emoji-friendly fonts
         self.setStyleSheet("""
             QWidget {
-                font-family: 'Comic Sans MS', 'Segoe UI', monospace;
+                font-family: 'Noto Color Emoji', 'Segoe UI', 'Arial';
                 font-size: 12pt;
                 background-color: #fff0f6;
                 color: #4b0082;
@@ -45,7 +45,7 @@ class CompilerGUI(QWidget):
                 background-color: #fffaff;
                 color: #5a005a;
                 border: 1px solid #d6a4cb;
-                font-family: 'Courier New', monospace;
+                font-family: 'Courier New', 'Consolas', monospace;
                 font-size: 11pt;
             }
 
@@ -75,9 +75,9 @@ class CompilerGUI(QWidget):
         self.editor = QsciScintilla()
         self.editor.setUtf8(True)
         lexer = QsciLexerCPP()
-        lexer.setDefaultFont(QFont("Comic Sans MS", 11))
+        lexer.setDefaultFont(QFont("Courier New", 11))
         self.editor.setLexer(lexer)
-        self.editor.setFont(QFont("Comic Sans MS", 11))
+        self.editor.setFont(QFont("Courier New", 11))
         self.editor.setMarginLineNumbers(1, True)
         self.editor.setMarginsForegroundColor(QColor("gray"))
         self.editor.setMarginWidth(1, "0000")
@@ -91,10 +91,10 @@ class CompilerGUI(QWidget):
 
         # Buttons
         buttonLayout = QHBoxLayout()
-        self.compileButton = QPushButton("🛠 Compile")
-        self.resetButton = QPushButton("🔄 Reset")
-        self.importButton = QPushButton("📂 Import")
-        self.exportButton = QPushButton("📤 Export")
+        self.compileButton = QPushButton("Compile")
+        self.resetButton = QPushButton("Reset")
+        self.importButton = QPushButton("Import")
+        self.exportButton = QPushButton("Export")
 
         for btn in [self.compileButton, self.resetButton, self.importButton, self.exportButton]:
             buttonLayout.addWidget(btn)
@@ -106,29 +106,29 @@ class CompilerGUI(QWidget):
         self.quadTab = QTextEdit()
         self.asmTab = QTextEdit()
         for tab in [self.symbolTab, self.quadTab, self.asmTab]:
-            tab.setFont(QFont("Comic Sans MS", 11))
+            tab.setFont(QFont("Courier New", 11))
             tab.setReadOnly(True)
 
-        self.tabs.addTab(self.symbolTab, "🧾 Symbol Table")
-        self.tabs.addTab(self.quadTab, "📐 Quadruples")
+        self.tabs.addTab(self.symbolTab, "Symbol Table")
+        self.tabs.addTab(self.quadTab, "Quadruples")
 
         # Error tabs
         self.errorTabs = QTabWidget()
         self.syntaxErrorText = QTextEdit()
         self.semanticErrorText = QTextEdit()
         for t in [self.syntaxErrorText, self.semanticErrorText]:
-            t.setFont(QFont("Comic Sans MS", 11))
+            t.setFont(QFont("Courier New", 11))
             t.setReadOnly(True)
 
-        self.errorTabs.addTab(self.syntaxErrorText, "📕 Syntax Errors")
-        self.errorTabs.addTab(self.semanticErrorText, "📘 Semantic Errors")
-        self.tabs.addTab(self.errorTabs, "❗ Errors")
+        self.errorTabs.addTab(self.syntaxErrorText, "Syntax Errors")
+        self.errorTabs.addTab(self.semanticErrorText, "Semantic Errors")
+        self.tabs.addTab(self.errorTabs, "Errors")
 
         self.warningTab = QTextEdit()
-        self.warningTab.setFont(QFont("Comic Sans MS", 11))
+        self.warningTab.setFont(QFont("Courier New", 11))
         self.warningTab.setReadOnly(True)
-        self.tabs.addTab(self.warningTab, "⚠️ Warnings")
-        self.tabs.addTab(self.asmTab, "🧩 Assembly")
+        self.tabs.addTab(self.warningTab, "Warnings")
+        self.tabs.addTab(self.asmTab, "Assembly")
 
         layout.addWidget(self.tabs)
         self.setLayout(layout)
