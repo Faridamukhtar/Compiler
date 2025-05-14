@@ -1463,54 +1463,57 @@ multiplicative_expr:
                 ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
                 fprintf(stderr, "Semantic Error (line %d): Division by zero.\n", prev_valid_line);
             }
-            
-            /* Generate quadruple for division */
-            char *temp = new_temp();
-            if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
-                convert_to_float_if_needed(&$3);
-            } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
-                convert_to_float_if_needed(&$1);
-            }
-            if ($1.temp_var && $3.temp_var) {
-                add_quadruple(OP_DIV, $1.temp_var, $3.temp_var, temp);
-            } else {
-                /* Handle literals or expressions without temp vars */
-                char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
-                char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
-                
-                if (!$1.temp_var) {
-                    switch ($1.type) {
-                        case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
-                        case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
-                        default: strcpy(arg1, "unknown");
+            else
+            {
+                /* Generate quadruple for division */
+                char *temp = new_temp();
+                if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
+                    convert_to_float_if_needed(&$3);
+                } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
+                    convert_to_float_if_needed(&$1);
+                }
+                if ($1.temp_var && $3.temp_var) {
+                    add_quadruple(OP_DIV, $1.temp_var, $3.temp_var, temp);
+                } else {
+                    /* Handle literals or expressions without temp vars */
+                    char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
+                    char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
+                    
+                    if (!$1.temp_var) {
+                        switch ($1.type) {
+                            case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
+                            case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
+                            default: strcpy(arg1, "unknown");
+                        }
                     }
+                    
+                    if (!$3.temp_var) {
+                        switch ($3.type) {
+                            case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
+                            case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
+                            default: strcpy(arg2, "unknown");
+                        }
+                    }
+                    
+                    add_quadruple(OP_DIV, arg1, arg2, temp);
+                    
+                    if (!$1.temp_var) free(arg1);
+                    if (!$3.temp_var) free(arg2);
                 }
                 
-                if (!$3.temp_var) {
-                    switch ($3.type) {
-                        case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
-                        case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
-                        default: strcpy(arg2, "unknown");
-                    }
+                /* Determine the type of the result */
+                if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
+                    $$.type = FLOAT_TYPE;
+                    $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) / 
+                                ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
+                } else {
+                    $$.type = INT_TYPE;
+                    $$.value.iVal = $1.value.iVal / $3.value.iVal;
                 }
-                
-                add_quadruple(OP_DIV, arg1, arg2, temp);
-                
-                if (!$1.temp_var) free(arg1);
-                if (!$3.temp_var) free(arg2);
+                $$.temp_var = temp;
             }
-            
-            /* Determine the type of the result */
-            if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
-                $$.type = FLOAT_TYPE;
-                $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) / 
-                            ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
-            } else {
-                $$.type = INT_TYPE;
-                $$.value.iVal = $1.value.iVal / $3.value.iVal;
-            }
-            $$.temp_var = temp;
         }
+            
     }
 
     | multiplicative_expr MOD exponent_expr {

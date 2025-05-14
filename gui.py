@@ -114,7 +114,7 @@ class CompilerGUI(QWidget):
         self.errorTabs = QTabWidget()
         self.errorTabs.setStyleSheet("""
             QTabBar::tab {
-                min-width: 140px;
+                min-width: 180px;
             }
         """)
         self.syntaxErrorText = QTextEdit()
@@ -167,15 +167,15 @@ class CompilerGUI(QWidget):
 
         if result.stdout:
             for line in result.stdout.splitlines():
-                if "Semantic Error" in line or "Semantic Warning" in line:
-                    semantic_lines.append(line)
-                elif "Syntax Error" in line:
+                # if "Semantic Error" in line or "Semantic Warning" in line:
+                #     semantic_lines.append(line)
+                if "Syntax Error" in line:
                     syntax_lines.append(line)
                 elif "Warning" in line:
                     warning_lines.append(line)
 
         if result.stderr:
-            semantic_lines.append("--- STDERR ---")
+            # semantic_lines.append("--- STDERR ---")
             semantic_lines.extend(result.stderr.splitlines())
 
         self.highlight_errors(self.syntaxErrorText, syntax_lines)
