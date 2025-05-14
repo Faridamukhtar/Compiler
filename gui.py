@@ -88,7 +88,7 @@ class CompilerGUI(QWidget):
         self.editor.setMarginsBackgroundColor(QColor("#f8d7e8"))
         self.editor.setBraceMatching(QsciScintilla.SloppyBraceMatch)
 
-        layout.addWidget(QLabel("✨ Input Code:"))
+        layout.addWidget(QLabel("Input Code:"))
         layout.addWidget(self.editor)
 
         # Buttons
@@ -111,25 +111,28 @@ class CompilerGUI(QWidget):
             tab.setFont(QFont("Courier New", 11))
             tab.setReadOnly(True)
 
-        self.tabs.addTab(self.symbolTab, "Symbol Table")
-        self.tabs.addTab(self.quadTab, "Quadruples")
-
-        # Error tabs
         self.errorTabs = QTabWidget()
+        self.errorTabs.setStyleSheet("""
+            QTabBar::tab {
+                min-width: 140px;
+            }
+        """)
         self.syntaxErrorText = QTextEdit()
         self.semanticErrorText = QTextEdit()
+        self.semanticErrorText.setMinimumWidth(800)  
         for t in [self.syntaxErrorText, self.semanticErrorText]:
             t.setFont(QFont("Courier New", 11))
             t.setReadOnly(True)
-
-        self.errorTabs.addTab(self.syntaxErrorText, "Syntax Errors")
-        self.errorTabs.addTab(self.semanticErrorText, "Semantic Errors")
-        self.tabs.addTab(self.errorTabs, "Errors")
 
         self.warningTab = QTextEdit()
         self.warningTab.setFont(QFont("Courier New", 11))
         self.warningTab.setReadOnly(True)
         self.tabs.addTab(self.warningTab, "Warnings")
+        self.errorTabs.addTab(self.syntaxErrorText, "Syntax Errors")
+        self.errorTabs.addTab(self.semanticErrorText, "Semantic Errors")
+        self.tabs.addTab(self.errorTabs, "Errors")
+        self.tabs.addTab(self.symbolTab, "Symbol Table")
+        self.tabs.addTab(self.quadTab, "Quadruples")
         self.tabs.addTab(self.asmTab, "Assembly")
 
         layout.addWidget(self.tabs)
