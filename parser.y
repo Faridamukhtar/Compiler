@@ -1792,12 +1792,12 @@ repeat_stmt:
 function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {
         Value myValue;
-        myValue.iVal = 0;  // Initialize with a default value
+        myValue.iVal = 0;
+        enterScope();
         addSymbol($3, $2, true, myValue, false, true, $5); 
         currentFunction = lookupSymbol($3);
         currentFunctionReturnType = mapStringToValueType($2);
         return_seen = 0; 
-        enterScope();
         addParamsToSymbolTable($5);
         add_quadruple(OP_LABEL, NULL, NULL, $3);
     } statement_list RBRACE {

@@ -155,7 +155,10 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
                         sprintf(valueStr, "%f", symbol->value.fVal);
                         break;
                     case STRING_TYPE:
-                        sprintf(valueStr, "\"%s\"", symbol->value.sVal);
+                        // if (symbol->value.sVal != NULL)
+                        //     sprintf(valueStr, "\"%s\"", symbol->value.sVal);
+                        // else
+                        //     strcpy(valueStr, "\"(null)\"");
                         break;
                     case BOOL_TYPE:
                         sprintf(valueStr, "%s", symbol->value.bVal ? "true" : "false");
