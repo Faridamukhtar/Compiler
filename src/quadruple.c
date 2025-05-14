@@ -37,6 +37,7 @@ const char* get_op_string(OpType op) {
         case OP_UMINUS: return "UMINUS";
         case OP_INC: return "++";
         case OP_DEC: return "--";
+        case OP_ITOF: return "INT_TO_FLOAT";
         default: return "UNKNOWN_OP";
     }
 }
