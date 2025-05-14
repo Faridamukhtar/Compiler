@@ -77,10 +77,10 @@ After clicking **Compile**, you can click **Export** to:
 
 | Name   | Contribution                     |
 | ------ | -------------------------------- |
-| Mira   | GUI and Semantic Analyzer 💖    |
-| Mimo   | Symbol Table 📚                 |
-| Monmon | Syntax Errors, Type Conversions, and Quadruples 🔧 |
-| Fofa   | Syntax Errors, Type Conversions, and Quadruples 🧮 |
+| Mira   | Lexer, GUI, and Semantic Analyzer 💖    |
+| Mimo   | Lexer, and Symbol Table 📚                 |
+| Monmon | Parser, Syntax Errors, Type Conversions, and Quadruples 🌺 |
+| Fofa   | Parser, Syntax Errors, Type Conversions, and Quadruples 🧮 |
 
 ---
 
