@@ -17,6 +17,7 @@ extern int prev_valid_line;
 
 SymbolTableEntry* currentFunction = NULL;
 ValueType currentFunctionReturnType = VOID_TYPE;
+int return_seen = 0;
 
 void yyerror(const char *s);
 
@@ -302,13 +303,14 @@ declaration:
             report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Variable '%s' already declared in this scope.\n", prev_valid_line, $2);
         } else {
+            addSymbol($2, $1, true, $4.value, false, false, NULL);
             ValueType declaredType = mapStringToValueType($1);
             if (!areTypesCompatible(declaredType, $4.type)) {
                 report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
                 fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $2);
             } else {
-                Value myValue = $4.value;
-                addSymbol($2, $1, true, myValue, false, false, NULL);
+                // Value myValue = $4.value;
+                // addSymbol($2, $1, true, myValue, false, false, NULL);
                 char *expr_result;
                 if ($4.temp_var) {
                     expr_result = $4.temp_var;
@@ -906,6 +908,7 @@ default_case:
 
 return_stmt:
     RETURN expression {
+        return_seen = 1; 
         /* Generate return quadruple */
         if (currentFunctionReturnType == VOID_TYPE) {
             report_error(SEMANTIC_ERROR, "Void Function Return Value", prev_valid_line);
@@ -948,9 +951,10 @@ return_stmt:
         
     }
     | RETURN {
+        return_seen = 1; 
         if (currentFunctionReturnType != VOID_TYPE) {
             report_error(SEMANTIC_ERROR, "Missing Return Value", prev_valid_line);
-            fprintf(stderr, "Semantic Error (line %d): Function '%s' must return nothing (void).\n",
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' must return a value (void).\n",
                     prev_valid_line,
                     currentFunction ? currentFunction->identifierName : "unknown");
         }
@@ -1792,11 +1796,18 @@ function_decl:
         addSymbol($3, $2, true, myValue, false, true, $5); 
         currentFunction = lookupSymbol($3);
         currentFunctionReturnType = mapStringToValueType($2);
+        return_seen = 0; 
         enterScope();
         addParamsToSymbolTable($5);
         add_quadruple(OP_LABEL, NULL, NULL, $3);
     } statement_list RBRACE {
         /* Generate implicit return if none exists */
+        if (currentFunctionReturnType != VOID_TYPE && !return_seen) {
+            report_error(SEMANTIC_ERROR, "Missing Return Statement", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Function '%s' is missing a return statement.\n",
+                    prev_valid_line,
+                    currentFunction ? currentFunction->identifierName : "unknown");
+        }
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
         exitScope();
     }
@@ -1999,7 +2010,7 @@ int main() {
         checkUnclosedScopes(yylineno);
         printf("\n=== Parsing Finished ===\n");
         print_all_errors();  
-
+        reportUnusedVariables();
         if (get_error_count() > 0) {
             printf("Parsing failed with errors.\n");
         } else {
@@ -2009,7 +2020,7 @@ int main() {
         // TODO: MOVE THIS INSIDE PREVIOUS ELSE
         // ------------------------------------------------------------------------------------------//
 
-        print_quadruples();
+        // print_quadruples();
 
 
         // Write quadruples to file
@@ -2042,7 +2053,7 @@ int main() {
             printf("Failed to open symbol_table.txt for writing.\n");
         }
 
-        reportUnusedVariables();
+        // reportUnusedVariables();
         fclose(input);
         clearSymbolTables(currentScope);
     } else {
