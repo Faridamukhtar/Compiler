@@ -18,6 +18,7 @@ extern int prev_valid_line;
 SymbolTableEntry* currentFunction = NULL;
 ValueType currentFunctionReturnType = VOID_TYPE;
 int return_seen = 0;
+int caught = 0;
 
 void yyerror(const char *s);
 
@@ -1792,12 +1793,13 @@ function_decl:
         enterScope();
         currentFunction = lookupSymbol($3);
         currentFunctionReturnType = mapStringToValueType($2);
-        return_seen = 0; 
+        return_seen = 0;
+        caught = 0;
         addParamsToSymbolTable($5);
         add_quadruple(OP_LABEL, NULL, NULL, $3);
     } statement_list RBRACE {
         /* Generate implicit return if none exists */
-        if (currentFunctionReturnType != VOID_TYPE && !return_seen) {
+        if (currentFunctionReturnType != VOID_TYPE && !return_seen && !caught) {
             report_error(SEMANTIC_ERROR, "Missing Return Statement", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is missing a return statement.\n",
                     prev_valid_line,
@@ -1808,7 +1810,8 @@ function_decl:
     }
     | FUNCTION error IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
-        currentFunctionReturnType = VOID_TYPE;
+        caught = 1;
+        // currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     | FUNCTION TYPE IDENTIFIER error {
@@ -1822,13 +1825,15 @@ function_decl:
     | FUNCTION error IDENTIFIER error  {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
         report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
-        currentFunctionReturnType = VOID_TYPE;
+        caught = 1;
+        // currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     | FUNCTION error IDENTIFIER LPAREN params error {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
         report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
-        currentFunctionReturnType = VOID_TYPE;
+        caught = 1;
+        // currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     ;

@@ -171,7 +171,7 @@ class CompilerGUI(QWidget):
                 #     semantic_lines.append(line)
                 if "Syntax Error" in line:
                     syntax_lines.append(line)
-                elif "Warning" in line:
+                elif "Semantic Warning" in line:
                     warning_lines.append(line)
 
         if result.stderr:
