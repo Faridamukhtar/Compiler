@@ -15,6 +15,7 @@ symbol_table.txt
 # Build directories
 build/
 bin/
+venv/
 
 # Editor-specific files
 .vscode/
