@@ -189,6 +189,10 @@ statement:
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
+    | IDENTIFIER error {
+        report_error(SYNTAX_ERROR, "Expected '('", prev_valid_line);
+        yyerrok;
+    }
     ;
 
 declaration:
@@ -596,6 +600,10 @@ for_header:
         yyerrok;
     }
     | for_stmt_declaration SEMI expression error {
+        report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
+        yyerrok;
+    }
+    | for_stmt_declaration error expression error{
         report_error(SYNTAX_ERROR, "Expected ';'", prev_valid_line);
         yyerrok;
     }
@@ -1639,6 +1647,10 @@ repeat_stmt:
         free($<code_info>3.code);
         free($<code_info>3.end_label);
     }
+    | REPEAT error {
+        report_error(SYNTAX_ERROR, "Malformed repeat statement", prev_valid_line);
+        yyerrok;
+    }
 ;
 
 function_decl:
@@ -1656,18 +1668,31 @@ function_decl:
         add_quadruple(OP_RETURN, NULL, NULL, NULL);
         exitScope();
     }
-    /* | FUNCTION error {
+    | FUNCTION error IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
+        currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     | FUNCTION TYPE IDENTIFIER error {
         report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
         yyerrok;
     }
-    | FUNCTION TYPE IDENTIFIER LPAREN params error {
+    | FUNCTION TYPE IDENTIFIER LPAREN params error{
         report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
         yyerrok;
-    } */
+    }
+    | FUNCTION error IDENTIFIER error  {
+        report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
+        currentFunctionReturnType = VOID_TYPE;
+        yyerrok;
+    }
+    | FUNCTION error IDENTIFIER LPAREN params error {
+        report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
+        report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
+        currentFunctionReturnType = VOID_TYPE;
+        yyerrok;
+    }
     ;
 
 function_call:
@@ -1713,10 +1738,6 @@ function_call:
         /* Store result in a temporary var for later use */
         $<temp_var>$ = result;
     }
-    /* | IDENTIFIER error {
-        report_error(SYNTAX_ERROR, "Expected '(' in function call", prev_valid_line);
-        yyerrok;
-    } */
     | IDENTIFIER LPAREN error {
         report_error(SYNTAX_ERROR, "Expected ')' in function call", prev_valid_line);
         yyerrok;
@@ -1766,6 +1787,10 @@ argument_list:
             add_quadruple(OP_PARAM, param_val, NULL, NULL);
             free(param_val);
         }
+    }
+    | argument_list error expression{
+        report_error(SYNTAX_ERROR, "Expected ','", prev_valid_line);
+        yyerrok;
     }
     ;
 
