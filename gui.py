@@ -60,12 +60,14 @@ class CompilerGUI(QWidget):
                 padding: 6px 12px;
                 border-top-left-radius: 12px;
                 border-top-right-radius: 12px;
+                min-width: 130px;  
             }
 
             QTabBar::tab:selected {
                 background: #ffc1d3;
                 font-weight: bold;
                 color: #5a005a;
+                min-width: 130px;  
             }
         """)
 
@@ -227,22 +229,8 @@ class CompilerGUI(QWidget):
         with open(os.path.join(output_dir, "warnings.txt"), "w") as f:
             f.write(self.warningTab.toPlainText())
 
-        # Zip the folder
-        zip_path = shutil.make_archive(output_dir, 'zip', output_dir)
-
-        # Open folder
-        try:
-            if sys.platform.startswith('darwin'):
-                subprocess.run(["open", output_dir])
-            elif os.name == 'nt':
-                os.startfile(output_dir)
-            elif os.name == 'posix':
-                subprocess.run(["xdg-open", output_dir])
-        except Exception as e:
-            print(f"Could not open folder: {e}")
-
         QMessageBox.information(self, "Export Successful",
-            f"Files exported to:\n{output_dir}\n\nArchive created:\n{zip_path}")
+            f"Files exported to:\n{output_dir}\n")
 
     def load_output_files(self):
         def load(file_path):
