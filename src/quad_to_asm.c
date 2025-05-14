@@ -129,6 +129,15 @@ void convert_quadruples_to_assembly(const char *filename) {
             case OP_ITOF:
                 fprintf(fp, "ITOF %s, %s\n", clean(res), clean(a1));
                 break;
+            case OP_FTOI:
+                fprintf(fp, "FTOI %s, %s\n", clean(res), clean(a1));
+                break;
+            case OP_CTOI:
+                fprintf(fp, "CTOI %s, %s\n", clean(res), clean(a1));
+                break;
+            case OP_ITOB:
+                fprintf(fp, "ITOB %s, %s\n", clean(res), clean(a1));
+                break;
             default:
                 fprintf(fp, ";\n");
                 break;

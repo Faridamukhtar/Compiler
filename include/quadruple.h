@@ -32,7 +32,10 @@ typedef enum {
     OP_UMINUS,
     OP_INC,
     OP_DEC,
-    OP_ITOF
+    OP_ITOF,
+    OP_FTOI,
+    OP_CTOI,
+    OP_ITOB
 } OpType;
 
 typedef struct {

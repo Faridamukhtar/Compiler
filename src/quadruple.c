@@ -38,6 +38,9 @@ const char* get_op_string(OpType op) {
         case OP_INC: return "++";
         case OP_DEC: return "--";
         case OP_ITOF: return "INT_TO_FLOAT";
+        case OP_FTOI: return "FLOAT_TO_INT";
+        case OP_CTOI: return "CHAR_TO_INT";
+        case OP_ITOB: return "INT_TO_BOOL";
         default: return "UNKNOWN_OP";
     }
 }

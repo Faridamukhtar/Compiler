@@ -48,6 +48,63 @@ char* convert_to_float_if_needed(expr *e) {
     return e->temp_var;
 }
 
+// Convert float to int (FTOI)
+char* convert_to_int_if_needed(expr *e) {
+    if (e->type == FLOAT_TYPE) {
+        char *arg = e->temp_var ? e->temp_var : malloc(50);
+        if (!e->temp_var)
+            sprintf(arg, "%f", e->value.fVal);
+
+        char *temp_var_name = new_temp();
+        add_quadruple(OP_FTOI, arg, NULL, temp_var_name);
+
+        if (!e->temp_var)
+            free(arg);
+
+        e->type = INT_TYPE;
+        e->temp_var = temp_var_name;
+    }
+    return e->temp_var;
+}
+
+// Convert char to int (CTOI)
+char* convert_char_to_int_if_needed(expr *e) {
+    if (e->type == CHAR_TYPE) {
+        char *arg = e->temp_var ? e->temp_var : malloc(10);
+        if (!e->temp_var)
+            sprintf(arg, "'%c'", e->value.cVal);
+
+        char *temp_var_name = new_temp();
+        add_quadruple(OP_CTOI, arg, NULL, temp_var_name);
+
+        if (!e->temp_var)
+            free(arg);
+
+        e->type = INT_TYPE;
+        e->temp_var = temp_var_name;
+    }
+    return e->temp_var;
+}
+
+// Convert int to bool (ITOB)
+char* convert_to_bool_if_needed(expr *e) {
+    if (e->type == INT_TYPE) {
+        char *arg = e->temp_var ? e->temp_var : malloc(50);
+        if (!e->temp_var)
+            sprintf(arg, "%d", e->value.iVal);
+
+        char *temp_var_name = new_temp();
+        add_quadruple(OP_ITOB, arg, NULL, temp_var_name);
+
+        if (!e->temp_var)
+            free(arg);
+
+        e->type = BOOL_TYPE;
+        e->temp_var = temp_var_name;
+    }
+    return e->temp_var;
+}
+
 
 
 char* get_break_label() {
@@ -266,7 +323,13 @@ declaration:
                         default: strcpy(expr_result, "unknown");
                     }
                 }
-                add_quadruple(OP_ASSIGN, expr_result, NULL, $2);
+                if (declaredType == INT_TYPE && $4.type == FLOAT_TYPE) {
+                    char* temp_var_name= convert_to_int_if_needed(&$4);
+                    add_quadruple(OP_ASSIGN, temp_var_name, NULL, $2);
+                }
+                else{
+                    add_quadruple(OP_ASSIGN, expr_result, NULL, $2);
+                }
                 if (!$4.temp_var) {
                     free(expr_result);
                 }
@@ -307,8 +370,8 @@ assignment:
     IDENTIFIER INC {
         SymbolTableEntry *entry = lookupSymbol($1);
         if (!entry) {
-           report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
-           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
+            report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         } 
         else {
@@ -323,7 +386,7 @@ assignment:
         SymbolTableEntry *entry = lookupSymbol($1);
         if (!entry) {
             report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
-           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $1);
             // YYABORT;
         } 
         else {
@@ -338,7 +401,7 @@ assignment:
         SymbolTableEntry *entry = lookupSymbol($2);
         if (!entry) {
             report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
-           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
         } 
         else {
@@ -353,7 +416,7 @@ assignment:
         SymbolTableEntry *entry = lookupSymbol($2);
         if (!entry) {
             report_error(SEMANTIC_ERROR, "Variable Undeclared", prev_valid_line);
-           fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
+            fprintf(stderr, "Semantic Error (line %d): Variable '%s' used before declaration.\n", prev_valid_line, $2);
             // YYABORT;
         } 
         else {
@@ -402,7 +465,13 @@ assignment:
                             strcpy(expr_result, "unknown");
                     }
                 }
-                add_quadruple(OP_ASSIGN, expr_result, NULL, $1);
+                if (entry->type == INT_TYPE && $3.type == FLOAT_TYPE) {
+                    char *temp_var_name = convert_to_int_if_needed(&$3);
+                    add_quadruple(OP_ASSIGN, temp_var_name, NULL, $1);
+                }
+                else{
+                    add_quadruple(OP_ASSIGN, expr_result, NULL, $1);
+                }
                 if (!$3.temp_var) {
                     free(expr_result);
                 }
@@ -422,15 +491,17 @@ if_stmt:
         char *false_label = new_label();
         char *next_label = new_label();
 
-        // Emit conditional jump
-        if ($3.temp_var) {
-            add_quadruple(OP_IFGOTO, $3.temp_var, NULL, true_label);
+        expr condition = $3;
+        convert_to_bool_if_needed(&condition);
+
+        if (condition.temp_var) {
+            add_quadruple(OP_IFGOTO, condition.temp_var, NULL, true_label);
         } else {
             char expr_result[50];
-            switch ($3.type) {
-                case INT_TYPE:   sprintf(expr_result, "%d", $3.value.iVal); break;
-                case FLOAT_TYPE: sprintf(expr_result, "%f", $3.value.fVal); break;
-                case BOOL_TYPE:  sprintf(expr_result, "%s", $3.value.bVal ? "true" : "false"); break;
+            switch (condition.type) {
+                case INT_TYPE:   sprintf(expr_result, "%d", condition.value.iVal); break;
+                case FLOAT_TYPE: sprintf(expr_result, "%f", condition.value.fVal); break;
+                case BOOL_TYPE:  sprintf(expr_result, "%s", condition.value.bVal ? "true" : "false"); break;
                 default:         strcpy(expr_result, "unknown");
             }
             add_quadruple(OP_IFGOTO, expr_result, NULL, true_label);
@@ -498,8 +569,10 @@ else_part:
 
 while_stmt:
     WHILE while_header LPAREN expression {
-        // Evaluate expression ($4)
+        // Evaluate and convert condition
         expr condition = $<expr>4;
+        convert_to_bool_if_needed(&condition);
+
         // Emit condition label
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>2.cond_label);
 
@@ -519,7 +592,6 @@ while_stmt:
         // Labels were created earlier and stored in $<code_info>2
         add_quadruple(OP_GOTO, NULL, NULL, $<code_info>2.end_label);
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>2.body_label);
-
     } RPAREN LBRACE { enterScope(); } statement_list RBRACE {
         exitScope();
 
@@ -893,6 +965,9 @@ expression:
 
 logical_expr:
     logical_expr OR logical_term {
+        convert_to_bool_if_needed(&$1);
+        convert_to_bool_if_needed(&$3);
+
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_OR, $1.temp_var, $3.temp_var, temp);
@@ -933,6 +1008,9 @@ logical_expr:
 
 logical_term:
     logical_term AND equality_expr {
+        convert_to_bool_if_needed(&$1);
+        convert_to_bool_if_needed(&$3);
+        
         char *temp = new_temp();
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_AND, $1.temp_var, $3.temp_var, temp);
@@ -1674,15 +1752,18 @@ repeat_stmt:
         exitScope();
         pop_loop_labels(); 
 
+        expr condition = $8;
+        convert_to_bool_if_needed(&condition);
+
         // If expression has a temp variable
-        if ($8.temp_var) {
-            add_quadruple(OP_IFGOTO, $8.temp_var, NULL, $<code_info>3.end_label);
+        if (condition.temp_var) {
+            add_quadruple(OP_IFGOTO, condition.temp_var, NULL, $<code_info>3.end_label);
         } else {
             char *expr_result = malloc(50);
-            switch ($8.type) {
-                case INT_TYPE:   sprintf(expr_result, "%d", $8.value.iVal); break;
-                case FLOAT_TYPE: sprintf(expr_result, "%f", $8.value.fVal); break;
-                case BOOL_TYPE:  sprintf(expr_result, "%s", $8.value.bVal ? "true" : "false"); break;
+            switch (condition.type) {
+                case INT_TYPE:   sprintf(expr_result, "%d", condition.value.iVal); break;
+                case FLOAT_TYPE: sprintf(expr_result, "%f", condition.value.fVal); break;
+                case BOOL_TYPE:  sprintf(expr_result, "%s", condition.value.bVal ? "true" : "false"); break;
                 default:         strcpy(expr_result, "unknown");
             }
             add_quadruple(OP_IFGOTO, expr_result, NULL, $<code_info>3.end_label);
