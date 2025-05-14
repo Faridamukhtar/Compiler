@@ -80,7 +80,7 @@ After clicking **Compile**, you can click **Export** to:
 | Mira   | GUI and Semantic Analyzer 💖    |
 | Mimo   | Symbol Table 📚                 |
 | Monmon | Syntax Errors and Quadruples 🔧 |
-| Fofa   | Quadruples 🧮                   |
+| Fofa   | Syntax Errors and Quadruples 🧮 |
 
 ---
 
