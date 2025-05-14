@@ -284,7 +284,7 @@ declaration:
         char** result = split($2, ",", &count);
         if (result) {
             Value myvalue;
-            myvalue.iVal = 0; // Initialize to default
+            myvalue.iVal = 0;
             for (int i = 0; i < count; i++) {
                 if (isSymbolDeclaredInCurrentScope(result[i])) {
                     report_error(SEMANTIC_ERROR, "Variable Redeclaration", prev_valid_line);
@@ -352,15 +352,7 @@ identifier_list:
     IDENTIFIER
     {$$ = $1;}
     | identifier_list COMMA IDENTIFIER {
-        $$ = concat_with_comma($1,$3); //TODO:CHECK
-        /* Append the new identifier to the list */
-        //int len1 = strlen($1);
-        //int len3 = strlen($3);
-        //$$ = malloc(len1 + len3 + 2); /* +2 for the comma and null terminator */
-        //strcpy($$, $1);
-        //strcat($$, ",");
-        //strcat($$, $3);
-        //free($1); /* Free the old string */
+        $$ = concat_with_comma($1,$3);
     }
     | identifier_list COMMA error {
         report_error(SYNTAX_ERROR, "Expected an identifier", prev_valid_line);
@@ -380,7 +372,7 @@ assignment:
             if (!entry->isInitialized) {
                 fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
             }
-            handlePrefixInc($1);
+            handleInc($1);
             add_quadruple(OP_INC, $1, NULL, $1);
         }
     }
@@ -395,7 +387,7 @@ assignment:
             if (!entry->isInitialized) {
                 fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $1);
             }
-            handlePostfixDec($1);
+            handleDec($1);
             add_quadruple(OP_DEC, $1, NULL, $1);
         }
     }
@@ -410,7 +402,7 @@ assignment:
             if (!entry->isInitialized) {
                 fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
             }
-            handlePrefixInc($2);
+            handleInc($2);
             add_quadruple(OP_INC, $2, NULL, $2);
         }
     }
@@ -425,7 +417,7 @@ assignment:
             if (!entry->isInitialized) {
                 fprintf(stderr, "Semantic Warning (line %d): Variable '%s' used before initialization.\n", prev_valid_line, $2);
             }
-            handlePostfixDec($2);
+            handleDec($2);
             add_quadruple(OP_DEC, $2, NULL, $2);
         }
     }

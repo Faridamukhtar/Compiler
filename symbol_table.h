@@ -31,8 +31,8 @@ typedef struct expression {
 } expr;
 
 typedef struct SymbolTable {
-    char *identifierName; // esm el fn 
-    ValueType type; //int
+    char *identifierName; 
+    ValueType type;
     bool isConst; 
     int isInitialized;
     int isUsed;
@@ -60,21 +60,18 @@ void addScope();
 
 void *addSymbol(char *name, char *type, bool isIntialized , Value value , bool isConst , bool isFunction, Parameter *params); // add intialize here
 SymbolTableEntry *lookupSymbol(char *name);
-
 int updateSymbolValue(char *name, Value newValue);
 bool isSymbolDeclaredInCurrentScope(char *name);
+void addParamsToSymbolTable(const Parameter* head);
 
 void writeSymbolTableOfAllScopesToFile(FILE *file);
 void clearSymbolTables(Scope *scope);
 
 ValueType mapStringToValueType(const char *typeStr);
-const char *valueTypeToString(ValueType type); // optional, for debugging/printing
+const char *valueTypeToString(ValueType type);
 
-void handlePostfixDec(char *identifier);
-
-// Function to handle prefix increment (INC IDENTIFIER)
-void handlePrefixInc(char *identifier);
-void addParamsToSymbolTable(const Parameter* head);
+void handleDec(char *identifier);
+void handleInc(char *identifier);
 
 
 void checkUnclosedScopes(int yylineno);

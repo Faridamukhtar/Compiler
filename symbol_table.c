@@ -31,13 +31,13 @@ void enterScope() {
 
 void addScope()
 {
-    scope_depth++;  // Increment scope depth
+    scope_depth++;
 }
 
 
 void removeScope()
 {
-    scope_depth--;  // Decrement scope depth
+    scope_depth--;
 }
 
 void exitScope() {
@@ -88,8 +88,6 @@ void *addSymbol(char *name, char *type, bool isIntialized, Value value, bool isC
         }
         temp->next = newEntry;
     }
-
-    // printf("type %s , name %s\n", type, name);
 
     return newEntry;
 }
@@ -144,47 +142,18 @@ void writeSymbolTableOfAllScopesToFile(FILE *file) {
 
         SymbolTableEntry *symbol = scope->symbols;
         while (symbol != NULL) {
-            char valueStr[256] = "N/A";
-
-            if (symbol->isInitialized && symbol->isFunction == false) {
-                switch (symbol->type) {
-                    case INT_TYPE:
-                        sprintf(valueStr, "%d", symbol->value.iVal);
-                        break;
-                    case FLOAT_TYPE:
-                        sprintf(valueStr, "%f", symbol->value.fVal);
-                        break;
-                    case STRING_TYPE:
-                        // if (symbol->value.sVal != NULL)
-                        //     sprintf(valueStr, "\"%s\"", symbol->value.sVal);
-                        // else
-                        //     strcpy(valueStr, "\"(null)\"");
-                        break;
-                    case BOOL_TYPE:
-                        sprintf(valueStr, "%s", symbol->value.bVal ? "true" : "false");
-                        break;
-                    case CHAR_TYPE:
-                        sprintf(valueStr, "'%c'", symbol->value.cVal);
-                        break;
-                    default:
-                        strcpy(valueStr, "unknown");
-                }
-            }
 
             fprintf(file,
-                "Name: %s, Type: %s (%d), Value: %s, Const: %d, Initialized: %d, Used: %d, IsFunction: %d, Params: %s\n",
+                "Name: %s, Type: %s (%d), Const: %d, Initialized: %d, Used: %d, IsFunction: %d, Params: %s\n",
                 symbol->identifierName,
                 valueTypeToString(symbol->type),
                 symbol->type,
-                valueStr,
                 symbol->isConst,
                 symbol->isInitialized,
                 symbol->isUsed,
                 symbol->isFunction,
                 parameterListToString(symbol->params)
             );
-
-
 
             symbol = symbol->next;
         }
@@ -232,14 +201,13 @@ const char *valueTypeToString(ValueType type) {
     }
 }
 
-void handlePostfixDec(char *identifier) {
+void handleDec(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {
         // printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
         return;
     }
 
-    // Decrement the symbol value
     if (entry->type == INT_TYPE) {
         entry->value.iVal -= 1;
     } else if (entry->type == FLOAT_TYPE) {
@@ -248,19 +216,16 @@ void handlePostfixDec(char *identifier) {
         printf("Error: DEC operation is not supported for type '%s'.\n", valueTypeToString(entry->type));
         return;
     }
-
-    // Update symbol value in the symbol table
     updateSymbolValue(identifier, entry->value);
 }
 
-void handlePrefixInc(char *identifier) {
+void handleInc(char *identifier) {
     SymbolTableEntry *entry = lookupSymbol(identifier);
     if (!entry) {
         // printf("Error: Symbol '%s' not declared in the current scope.\n", identifier);
         return;
     }
 
-    // Increment the symbol value
     if (entry->type == INT_TYPE) {
         entry->value.iVal += 1;
     } else if (entry->type == FLOAT_TYPE) {
@@ -270,7 +235,6 @@ void handlePrefixInc(char *identifier) {
         return;
     }
 
-    // Update symbol value in the symbol table
     updateSymbolValue(identifier, entry->value);
 }
 
@@ -291,25 +255,6 @@ void addParamsToSymbolTable(const Parameter* head) {
 
         param = param->next;
     }
-}
-
-void handleFunctionCall(char *fnName, Value *args, int argCount) {
-
-    SymbolTableEntry *fnEntry = lookupSymbol(fnName);
-
-    if (fnEntry == NULL) {
-        fprintf(stderr, "Error: Function '%s' is not declared.\n", fnName);
-        exit(EXIT_FAILURE);
-    }
-
-    if (!fnEntry->isFunction) {
-        fprintf(stderr, "Error: '%s' is not a function.\n", fnName);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Function '%s' found successfully!\n", fnName);
-
-    // (Next step: Check parameters & update the params --> re-enter the scope)
 }
 
 
