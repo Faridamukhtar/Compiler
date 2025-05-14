@@ -514,7 +514,6 @@ if_stmt:
     statement_list
     RBRACE { 
         exitScope(); 
-        // End of 'then' block, jump to end of if-else
         add_quadruple(OP_GOTO, NULL, NULL, $<code_info>5.next_label);
         add_quadruple(OP_LABEL, NULL, NULL, $<code_info>5.false_label);
     }
@@ -613,7 +612,7 @@ while_stmt:
 
 while_header:
     /* empty */ {
-        // Generate start and condition labels before expression is even parsed
+        // Generate start and condition labels
         char *cond_label  = new_label();
         char *body_label  = new_label();
         char *end_label  = new_label();
@@ -629,8 +628,6 @@ while_header:
 
 for_stmt:
     FOR LPAREN for_header assignment RPAREN for_body {
-        // Now emit the loop logic from here using $3 (header data)
-
         // Jump back to condition
         add_quadruple(OP_GOTO, NULL, NULL, $3.cond_label);
 
@@ -670,7 +667,7 @@ for_header:
             add_quadruple(OP_IFGOTO, $3.temp_var, NULL, body_label);
         } else {
             char buffer[50];
-            sprintf(buffer, "%d", $3.value.iVal); // adjust based on type
+            sprintf(buffer, "%d", $3.value.iVal);
             add_quadruple(OP_IFGOTO, buffer, NULL, body_label);
         }
 
@@ -740,7 +737,7 @@ for_stmt_declaration:
     | TYPE IDENTIFIER {
         enterScope();
         Value myValue;
-        myValue.iVal = 0; // Initialize to default
+        myValue.iVal = 0; 
         addSymbol($2, $1, false, myValue, false, false, NULL);
         }    
     | IDENTIFIER ASSIGN expression {
@@ -810,7 +807,7 @@ switch_stmt:
         current_switch_end_label = new_label();
         push_loop_labels(current_switch_end_label, NULL);
         $<code_info>$ = (typeof($<code_info>$)){
-            .code = strdup($3),     // variable to match
+            .code = strdup($3),   
             .end_label = current_switch_end_label,
             .true_label = NULL,
             .false_label = NULL,
@@ -857,7 +854,6 @@ case_item:
             default:          strcpy(val_str, "unknown");
         }
 
-        // t = switch_var == case_val
         char *temp = new_temp();
         add_quadruple(OP_EQ, current_switch_var, val_str, temp);
 
@@ -1714,9 +1710,7 @@ primary_expr:
         $$ = $2; 
     }
     | function_call {
-        //TODO: FIX THIS -> MIRA: $$ = $1; 
         $$ = $1; 
-        // $$ = (expr){.type = BOOL_TYPE, .value.bVal = true, .temp_var = $1};
     }
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);
@@ -1738,8 +1732,8 @@ primary_expr:
 repeat_stmt:
     REPEAT LBRACE {
         enterScope();
-        char *start_label = new_label();  // continue target
-        char *end_label = new_label();    // break target
+        char *start_label = new_label();  
+        char *end_label = new_label();    
 
         add_quadruple(OP_LABEL, NULL, NULL, start_label);
         push_loop_labels(end_label, start_label);
@@ -1808,7 +1802,6 @@ function_decl:
     | FUNCTION error IDENTIFIER LPAREN params RPAREN LBRACE statement_list RBRACE {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
         caught = 1;
-        // currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     | FUNCTION TYPE IDENTIFIER error {
@@ -1823,14 +1816,12 @@ function_decl:
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
         report_error(SYNTAX_ERROR, "Expected '(' in function declaration", prev_valid_line);
         caught = 1;
-        // currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     | FUNCTION error IDENTIFIER LPAREN params error {
         report_error(SYNTAX_ERROR, "Type is missing", prev_valid_line);
         report_error(SYNTAX_ERROR, "Expected ')' in function declaration", prev_valid_line);
         caught = 1;
-        // currentFunctionReturnType = VOID_TYPE;
         yyerrok;
     }
     ;
@@ -1841,7 +1832,7 @@ function_call:
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            $$ = (expr){.type = INT_TYPE, .temp_var = new_temp()};  // dummy fallback
+            $$ = (expr){.type = INT_TYPE, .temp_var = new_temp()};  
         } else {
             entry->isUsed = true;
             if (!compareParameters(entry->params, $3)) {
@@ -1852,9 +1843,8 @@ function_call:
             char *result = new_temp();
             add_quadruple(OP_CALL, $1, NULL, result);
 
-            // Set expr return
             Value v;
-            v.iVal = 0;  // placeholder
+            v.iVal = 0;  
             $$ = (expr){.type = entry->type, .value = v, .temp_var = result};
         }
     }
@@ -1863,7 +1853,7 @@ function_call:
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            $$ = (expr){.type = INT_TYPE, .temp_var = new_temp()};  // dummy fallback
+            $$ = (expr){.type = INT_TYPE, .temp_var = new_temp()};  
         } else {
             entry->isUsed = true;
             if (entry->params != NULL) {
@@ -1982,7 +1972,6 @@ const_decl:
     | CONST IDENTIFIER ASSIGN expression {
         report_error(SEMANTIC_ERROR, "Missing Type", prev_valid_line);
         fprintf(stderr, "Semantic Error (line %d): Constant '%s' declared without a type.\n", prev_valid_line, $2);
-        // exit(1);
     }
     ;
 
