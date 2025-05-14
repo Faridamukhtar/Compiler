@@ -1,5 +1,5 @@
 
-# Compilers-Project
+# Compiler
 
 A dark-themed graphical compiler frontend built with **PyQt5**, featuring syntax and semantic analysis, quadruple code generation, and export capabilities.
 
