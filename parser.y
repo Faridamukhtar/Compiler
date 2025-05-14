@@ -190,7 +190,6 @@ char *default_label = NULL;
 %type <s> identifier_list
 %type <code_info> if_stmt else_part while_stmt while_header for_stmt switch_stmt repeat_stmt for_header for_body
 %type <expr> CONSTANT_VAL
-// %type <temp_var> function_call
 %type <void_val> statement_list case_list default_case
 %type <param_list> argument_list
 
@@ -310,8 +309,6 @@ declaration:
                 report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
                 fprintf(stderr, "Semantic Error (line %d): Incompatible type assignment to variable '%s'.\n", prev_valid_line, $2);
             } else {
-                // Value myValue = $4.value;
-                // addSymbol($2, $1, true, myValue, false, false, NULL);
                 char *expr_result;
                 if ($4.temp_var) {
                     expr_result = $4.temp_var;
