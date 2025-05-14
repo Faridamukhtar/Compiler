@@ -183,12 +183,12 @@ char *default_label = NULL;
 %token UNKNOWN
 %token INC DEC
 
-%type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr
+%type <expr> expression logical_expr logical_term equality_expr relational_expr additive_expr multiplicative_expr exponent_expr unary_expr primary_expr function_call
 %type <param_list> params param_list param
 %type <s> identifier_list
 %type <code_info> if_stmt else_part while_stmt while_header for_stmt switch_stmt repeat_stmt for_header for_body
 %type <expr> CONSTANT_VAL
-%type <temp_var> function_call
+// %type <temp_var> function_call
 %type <void_val> statement_list case_list default_case
 %type <param_list> argument_list
 
@@ -1718,7 +1718,8 @@ primary_expr:
     }
     | function_call {
         //TODO: FIX THIS -> MIRA: $$ = $1; 
-        $$ = (expr){.type = BOOL_TYPE, .value.bVal = true, .temp_var = $1};
+        $$ = $1; 
+        // $$ = (expr){.type = BOOL_TYPE, .value.bVal = true, .temp_var = $1};
     }
     | IDENTIFIER {
         SymbolTableEntry *entry = lookupSymbol($1);
@@ -1832,42 +1833,43 @@ function_call:
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            /* $$ = (expr){.type = BOOL_TYPE}; */
+            $$ = (expr){.type = INT_TYPE, .temp_var = new_temp()};  // dummy fallback
         } else {
             entry->isUsed = true;
             if (!compareParameters(entry->params, $3)) {
                 report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
                 fprintf(stderr, "Semantic Error (line %d): Arguments passed to function '%s' do not match its definition.\n", prev_valid_line, $1);
             }
-            /* $$ = (expr){.type = entry->type, .value = (Value){}}; */
+
+            char *result = new_temp();
+            add_quadruple(OP_CALL, $1, NULL, result);
+
+            // Set expr return
+            Value v;
+            v.iVal = 0;  // placeholder
+            $$ = (expr){.type = entry->type, .value = v, .temp_var = result};
         }
-        /* Generate function call quadruple */
-        char *result = new_temp();
-        add_quadruple(OP_CALL, $1, NULL, result);
-        
-        /* Store result in a temporary var for later use */
-        $<temp_var>$ = result;
     }
     | IDENTIFIER LPAREN RPAREN {
         SymbolTableEntry *entry = lookupSymbol($1);
         if (!entry || !entry->isFunction) {
             report_error(SEMANTIC_ERROR, "Invalid Function Call", prev_valid_line);
             fprintf(stderr, "Semantic Error (line %d): Function '%s' is not declared.\n", prev_valid_line, $1);
-            //$$ = (expr){.type = BOOL_TYPE};
+            $$ = (expr){.type = INT_TYPE, .temp_var = new_temp()};  // dummy fallback
         } else {
             entry->isUsed = true;
             if (entry->params != NULL) {
                 report_error(SEMANTIC_ERROR, "Function Argument Mismatch", prev_valid_line);
-                fprintf(stderr, "Semantic Error (line %d): Function '%s' expects arguments, but none were given.\n", prev_valid_line, $1);
+                fprintf(stderr, "Semantic Error (line %d): Function '%s' expects arguments.\n", prev_valid_line, $1);
             }
-           // $$ = (expr){.type = entry->type, .value = (Value){}};
+
+            char *result = new_temp();
+            add_quadruple(OP_CALL, $1, NULL, result);
+
+            Value v;
+            v.iVal = 0;
+            $$ = (expr){.type = entry->type, .value = v, .temp_var = result};
         }
-        /* Generate function call quadruple with no arguments */
-        char *result = new_temp();
-        add_quadruple(OP_CALL, $1, NULL, result);
-        
-        /* Store result in a temporary var for later use */
-        $<temp_var>$ = result;
     }
     | IDENTIFIER LPAREN error {
         report_error(SYNTAX_ERROR, "Expected ')' in function call", prev_valid_line);
