@@ -1793,8 +1793,8 @@ function_decl:
     FUNCTION TYPE IDENTIFIER LPAREN params RPAREN LBRACE {
         Value myValue;
         myValue.iVal = 0;
-        enterScope();
         addSymbol($3, $2, true, myValue, false, true, $5); 
+        enterScope();
         currentFunction = lookupSymbol($3);
         currentFunctionReturnType = mapStringToValueType($2);
         return_seen = 0; 
@@ -1946,7 +1946,7 @@ params:
 
 param_list:
     param_list COMMA param {
-        $$ = addParameter($1, $3);  // Add the parameter to the list
+        $$ = addParameter($1, $3);
     }
     | param {
         $$ = $1;
@@ -1955,10 +1955,7 @@ param_list:
 
 param:
     TYPE IDENTIFIER {
-        Value myValue;
-        myValue.iVal = 0; // Initialize to default
-        addSymbol($2, $1, false, myValue, true, false, NULL);
-        $$ = createParameter($2, $1);  // Create a new parameter
+        $$ = createParameter($2, $1);  
     }
     ;
 
