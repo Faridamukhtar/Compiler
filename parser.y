@@ -695,7 +695,7 @@ for_stmt_declaration:
     ;
 
 CONSTANT_VAL:
-      INT      { Value v; v.iVal = $1; $$ = (expr){.type = INT_TYPE, .value = v, .temp_var = NULL}; }
+    INT      { Value v; v.iVal = $1; $$ = (expr){.type = INT_TYPE, .value = v, .temp_var = NULL}; }
     | FLOAT    { Value v; v.fVal = $1; $$ = (expr){.type = FLOAT_TYPE, .value = v, .temp_var = NULL}; }
     | BOOLEAN  { Value v; v.bVal = $1; $$ = (expr){.type = BOOL_TYPE, .value = v, .temp_var = NULL}; }
     | IDENTIFIER {
