@@ -126,6 +126,9 @@ void convert_quadruples_to_assembly(const char *filename) {
                 else
                     fprintf(fp, ";\n");
                 break;
+            case OP_ITOF:
+                fprintf(fp, "ITOF %s, %s\n", clean(res), clean(a1));
+                break;
             default:
                 fprintf(fp, ";\n");
                 break;

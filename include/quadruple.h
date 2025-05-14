@@ -31,7 +31,8 @@ typedef enum {
     OP_NOT,
     OP_UMINUS,
     OP_INC,
-    OP_DEC
+    OP_DEC,
+    OP_ITOF
 } OpType;
 
 typedef struct {

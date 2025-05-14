@@ -30,3 +30,4 @@ output.asm
 parser.output
 *.txt
 compiler.dSYM
+frontend

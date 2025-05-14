@@ -25,6 +25,31 @@ char *break_label_stack[100];
 char *continue_label_stack[100];
 int loop_label_top = -1;
 
+char* convert_to_float_if_needed(expr *e) {
+    if (e->type == INT_TYPE) {
+        // Prepare the source string
+        char *arg = e->temp_var ? e->temp_var : malloc(50);
+        if (!e->temp_var)
+            sprintf(arg, "%d", e->value.iVal);
+
+        // Call the actual function new_temp() and store result in a DIFFERENT variable
+        char *temp_var_name = new_temp();
+        add_quadruple(OP_ITOF, arg, NULL, temp_var_name);
+
+        if (!e->temp_var)
+            free(arg);
+
+        // Update the expression in-place
+        e->type = FLOAT_TYPE;
+        e->temp_var = temp_var_name;
+
+        return temp_var_name;
+    }
+    return e->temp_var;
+}
+
+
+
 char* get_break_label() {
     if (loop_label_top >= 0)
         return break_label_stack[loop_label_top];
@@ -1190,6 +1215,11 @@ additive_expr:
         {
             /* Generate quadruple for addition */
             char *temp = new_temp();
+            if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
+                convert_to_float_if_needed(&$3);
+            } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
+                convert_to_float_if_needed(&$1);
+            }
             if ($1.temp_var && $3.temp_var) {
                 add_quadruple(OP_ADD, $1.temp_var, $3.temp_var, temp);
             } else {
@@ -1240,6 +1270,11 @@ additive_expr:
         {
              /* Generate quadruple for subtraction */
             char *temp = new_temp();
+            if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
+                convert_to_float_if_needed(&$3);
+            } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
+                convert_to_float_if_needed(&$1);
+            }
             if ($1.temp_var && $3.temp_var) {
                 add_quadruple(OP_SUB, $1.temp_var, $3.temp_var, temp);
             } else {
@@ -1296,6 +1331,11 @@ multiplicative_expr:
         {
         /* Generate quadruple for multiplication */
         char *temp = new_temp();
+        if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
+            convert_to_float_if_needed(&$3);
+        } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
+            convert_to_float_if_needed(&$1);
+        }
         if ($1.temp_var && $3.temp_var) {
             add_quadruple(OP_MUL, $1.temp_var, $3.temp_var, temp);
         } else {
@@ -1338,22 +1378,83 @@ multiplicative_expr:
         }
     }
     | multiplicative_expr DIV exponent_expr {
-    if (!areTypesCompatible($1.type, $3.type)) {
-        report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
-        fprintf(stderr, "Semantic Error (line %d): Incompatible types in division.\n", prev_valid_line);
+        if (!areTypesCompatible($1.type, $3.type)) {
+            report_error(SEMANTIC_ERROR, "Incompatible Types", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Incompatible types in division.\n", prev_valid_line);
+        }
+        else
+        {
+            /* Check for division by zero */
+            if (($3.type == INT_TYPE && $3.value.iVal == 0) || 
+                ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
+                fprintf(stderr, "Semantic Error (line %d): Division by zero.\n", prev_valid_line);
+            }
+            
+            /* Generate quadruple for division */
+            char *temp = new_temp();
+            if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
+                convert_to_float_if_needed(&$3);
+            } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
+                convert_to_float_if_needed(&$1);
+            }
+            if ($1.temp_var && $3.temp_var) {
+                add_quadruple(OP_DIV, $1.temp_var, $3.temp_var, temp);
+            } else {
+                /* Handle literals or expressions without temp vars */
+                char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
+                char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
+                
+                if (!$1.temp_var) {
+                    switch ($1.type) {
+                        case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
+                        default: strcpy(arg1, "unknown");
+                    }
+                }
+                
+                if (!$3.temp_var) {
+                    switch ($3.type) {
+                        case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
+                        case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
+                        default: strcpy(arg2, "unknown");
+                    }
+                }
+                
+                add_quadruple(OP_DIV, arg1, arg2, temp);
+                
+                if (!$1.temp_var) free(arg1);
+                if (!$3.temp_var) free(arg2);
+            }
+            
+            /* Determine the type of the result */
+            if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
+                $$.type = FLOAT_TYPE;
+                $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) / 
+                            ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
+            } else {
+                $$.type = INT_TYPE;
+                $$.value.iVal = $1.value.iVal / $3.value.iVal;
+            }
+            $$.temp_var = temp;
+        }
     }
-    else
-    {
-        /* Check for division by zero */
+
+    | multiplicative_expr MOD exponent_expr {
+        /* Check for modulo by zero */
         if (($3.type == INT_TYPE && $3.value.iVal == 0) || 
             ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
-            fprintf(stderr, "Semantic Error (line %d): Division by zero.\n", prev_valid_line);
+            fprintf(stderr, "Semantic Error (line %d): Modulo by zero.\n", prev_valid_line);
         }
         
-        /* Generate quadruple for division */
+        /* Generate quadruple for modulo */
         char *temp = new_temp();
+        if ($1.type == FLOAT_TYPE && $3.type == INT_TYPE) {
+            convert_to_float_if_needed(&$3);
+        } else if ($1.type == INT_TYPE && $3.type == FLOAT_TYPE) {
+            convert_to_float_if_needed(&$1);
+        }
         if ($1.temp_var && $3.temp_var) {
-            add_quadruple(OP_DIV, $1.temp_var, $3.temp_var, temp);
+            add_quadruple(OP_MOD, $1.temp_var, $3.temp_var, temp);
         } else {
             /* Handle literals or expressions without temp vars */
             char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
@@ -1375,71 +1476,20 @@ multiplicative_expr:
                 }
             }
             
-            add_quadruple(OP_DIV, arg1, arg2, temp);
+            add_quadruple(OP_MOD, arg1, arg2, temp);
             
             if (!$1.temp_var) free(arg1);
             if (!$3.temp_var) free(arg2);
         }
         
-        /* Determine the type of the result */
-        if ($1.type == FLOAT_TYPE || $3.type == FLOAT_TYPE) {
-            $$.type = FLOAT_TYPE;
-            $$.value.fVal = ($1.type == FLOAT_TYPE ? $1.value.fVal : (float)$1.value.iVal) / 
-                           ($3.type == FLOAT_TYPE ? $3.value.fVal : (float)$3.value.iVal);
-        } else {
-            $$.type = INT_TYPE;
-            $$.value.iVal = $1.value.iVal / $3.value.iVal;
-        }
+        /* Modulo only works on integers */
+        $$.type = INT_TYPE;
+        $$.value.iVal = $1.value.iVal % $3.value.iVal;
         $$.temp_var = temp;
     }
-}
-
-| multiplicative_expr MOD exponent_expr {
-    /* Check for modulo by zero */
-    if (($3.type == INT_TYPE && $3.value.iVal == 0) || 
-        ($3.type == FLOAT_TYPE && $3.value.fVal == 0.0)) {
-        fprintf(stderr, "Semantic Error (line %d): Modulo by zero.\n", prev_valid_line);
+    | exponent_expr {
+        $$ = $1;
     }
-    
-    /* Generate quadruple for modulo */
-    char *temp = new_temp();
-    if ($1.temp_var && $3.temp_var) {
-        add_quadruple(OP_MOD, $1.temp_var, $3.temp_var, temp);
-    } else {
-        /* Handle literals or expressions without temp vars */
-        char *arg1 = $1.temp_var ? $1.temp_var : malloc(50);
-        char *arg2 = $3.temp_var ? $3.temp_var : malloc(50);
-        
-        if (!$1.temp_var) {
-            switch ($1.type) {
-                case INT_TYPE: sprintf(arg1, "%d", $1.value.iVal); break;
-                case FLOAT_TYPE: sprintf(arg1, "%f", $1.value.fVal); break;
-                default: strcpy(arg1, "unknown");
-            }
-        }
-        
-        if (!$3.temp_var) {
-            switch ($3.type) {
-                case INT_TYPE: sprintf(arg2, "%d", $3.value.iVal); break;
-                case FLOAT_TYPE: sprintf(arg2, "%f", $3.value.fVal); break;
-                default: strcpy(arg2, "unknown");
-            }
-        }
-        
-        add_quadruple(OP_MOD, arg1, arg2, temp);
-        
-        if (!$1.temp_var) free(arg1);
-        if (!$3.temp_var) free(arg2);
-    }
-    
-    /* Modulo only works on integers */
-    $$.type = INT_TYPE;
-    $$.value.iVal = $1.value.iVal % $3.value.iVal;
-    $$.temp_var = temp;
-}
-| exponent_expr {
-    $$ = $1;
-}
 ;
 
 exponent_expr:
