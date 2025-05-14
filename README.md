@@ -79,8 +79,8 @@ After clicking **Compile**, you can click **Export** to:
 | ------ | -------------------------------- |
 | Mira   | GUI and Semantic Analyzer 💖    |
 | Mimo   | Symbol Table 📚                 |
-| Monmon | Syntax Errors and Quadruples 🔧 |
-| Fofa   | Syntax Errors and Quadruples 🧮 |
+| Monmon | Syntax Errors, Type Conversions, and Quadruples 🔧 |
+| Fofa   | Syntax Errors, Type Conversions, and Quadruples 🧮 |
 
 ---
 
