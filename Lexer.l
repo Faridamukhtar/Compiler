@@ -95,13 +95,13 @@ CHAR        \'([^\'\\]|\\.)*\'
 \/\/.*          { /* skip single-line comments */ }
 \/\*[^*]*\*+([^/*][^*]*\*+)*\/ { /* skip multi-line comments */ }
 
-\"([^\"\\]|\\.)*    { report_error(SYNTAX_ERROR, "Unterminated string literal", yylineno); return UNKNOWN; }
-\'([^\'\\]|\\.)*    { report_error(SYNTAX_ERROR, "Unterminated character literal", yylineno); return UNKNOWN; }
+\"([^\"\\]|\\.)*    { report_error(SYNTAX_ERROR, "Unterminated string literal", prev_valid_line); return UNKNOWN; }
+\'([^\'\\]|\\.)*    { report_error(SYNTAX_ERROR, "Unterminated character literal", prev_valid_line); return UNKNOWN; }
 
 . {
     char buf[64];
     snprintf(buf, sizeof(buf), "Unrecognized character: '%c'", yytext[0]);
-    report_error(SYNTAX_ERROR, buf, yylineno);
+    report_error(SYNTAX_ERROR, buf, prev_valid_line);
     return UNKNOWN;
 }
 
