@@ -41,7 +41,7 @@ This generates the `./compiler` binary used by the GUI.
 ### 3. Run the GUI
 
 ```bash
-python3 gui.py
+python3 gui_darkMode.py
 ```
 
 This will launch the dark-themed interface.
