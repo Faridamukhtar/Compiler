@@ -5,6 +5,20 @@ A dark-themed graphical compiler frontend built with **PyQt5**, featuring syntax
 
 ---
 
+## Features
+
+* Dark-themed, modern interface
+* Syntax and semantic error highlighting
+* Quadruple code generation
+* One-click export of all results
+
+## Screenshot 
+### Error
+<img width="993" alt="Screenshot 2025-05-14 at 12 22 20 PM" src="https://github.com/user-attachments/assets/470da2f6-ae8b-4625-bbca-fe2eec2f5016" />
+
+### Compiled Assembly-like Intermediate Language
+<img width="992" alt="Screenshot 2025-05-14 at 12 22 08 PM" src="https://github.com/user-attachments/assets/9528e3a6-a096-4220-b3f3-19b7252c7c4d" />
+
 ## How to Run the Project
 
 ### 1. Install Dependencies
@@ -65,18 +79,4 @@ After clicking **Compile**, you can click **Export** to:
 * All files are saved to an `outputs/` folder.
 
 ---
-
-## Features
-
-* Dark-themed, modern interface
-* Syntax and semantic error highlighting
-* Quadruple code generation
-* One-click export of all results
-
-## Screenshot 
-### Error
-<img width="993" alt="Screenshot 2025-05-14 at 12 22 20 PM" src="https://github.com/user-attachments/assets/470da2f6-ae8b-4625-bbca-fe2eec2f5016" />
-
-### Compiled Assembly-like Intermediate Language
-<img width="992" alt="Screenshot 2025-05-14 at 12 22 08 PM" src="https://github.com/user-attachments/assets/9528e3a6-a096-4220-b3f3-19b7252c7c4d" />
 
